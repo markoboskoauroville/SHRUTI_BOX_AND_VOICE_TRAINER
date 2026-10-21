@@ -176,13 +176,13 @@ class ReedsTest {
         assertTrue(peak(m, 0.5) > 0.05f)
     }
 
-    // loudness per valve (v9): 0 dB, −12 dB, −24 dB, OFF
+    // loudness per valve (v10): 0 dB, −12 dB, −24 dB, a short tap steps to the next
     @Test fun loudnessIsInDecibels() {
-        assertEquals(1.0, Loudness.gain(0), 1e-9); assertEquals(0.2512, Loudness.gain(1), 1e-4)
-        assertEquals(0.0631, Loudness.gain(2), 1e-4); assertEquals(0.0, Loudness.gain(3), 0.0)
+        assertEquals(1.0, Loudness.gain(0), 1e-9); assertEquals(0.2512, Loudness.gain(1), 1e-4); assertEquals(0.0631, Loudness.gain(2), 1e-4)
     }
-    @Test fun offIsSilentEvenWhenOpen() {
-        val m = Mixer(rate); m.setVolume(0, Loudness.gain(3)); m.setOpen(0, true)
+    @Test fun aTapStepsFullHalfLineFull() = assertEquals(listOf(1, 2, 0), listOf(0, 1, 2).map { Loudness.next(it) })
+    @Test fun aSilentReedIsSilentEvenWhenOpen() {
+        val m = Mixer(rate); m.setVolume(0, 0.0); m.setOpen(0, true)
         assertEquals(0f, peak(m, 0.5), 0f); assertEquals(0.0, m.level(0), 0.0)
     }
     @Test fun minus24IsQuieter() {

@@ -164,3 +164,11 @@
    still opens and closes it.
 2. Four choices: 0 dB (100 %, the loudest), −12 dB, −24 dB, OFF. OFF keeps that note silent even when its valve or a
    preset opens it. A valve below 0 dB shows its level near its top; every valve's level is kept across restarts.
+
+## v10 — requested 21.10.2026 (after trying v9: "I am long pressing, nothing is happening")
+
+> I am long pressing, nothing is happening, but that's not a problem. I have idea for better feature because when we press any notes that is next to reset button, there is a list of notes. You just need to make these buttons bigger and they become buttons, representation of the original buttons, and then I can click and change the volume in 3 different levels. So this is much better than long press because this is not a long press, this is single short press. And then you can make like a different, like imagine we are in Fruity Loops. So basically full volume is full button, level 2 is half full button with some color, and level 3 is just one line at the bottom. So we change line, lines inside, like there are 3 LEDs but the continuous ones. Thank you.
+
+1. The list of notes beside RESET becomes a row of buttons, one per sounding note, like the valves.
+2. A short tap on a button steps its note: full (0 dB, the button full of light) → half (−12 dB, half full) → a line
+   at its foot (−24 dB) → full again. The long press and its menu (and OFF) are gone.

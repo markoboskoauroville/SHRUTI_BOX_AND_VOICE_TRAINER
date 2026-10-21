@@ -13,12 +13,19 @@ import kotlin.math.tanh
 // fails the build the day it does), so Test 1 runs it on a plain JVM (MANTRA_MANIFEST android-app.md §1, §2).
 
 /** The thirteen valves of a shruti box, Sa to the upper Sa, chromatic, in the names a singer uses. */
-/** The four loudnesses a valve can be set to (v9, Marko: "0 dB, then -12 dB and -24 dB, and the last option is off"). */
+/**
+ * The three loudnesses of a note (v10, Marko: "full volume is full button, level 2 is half full ... level 3 is just one
+ * line at the bottom"), stepped by a short tap on its button beside RESET. v9's OFF and long press are gone.
+ */
 object Loudness {
     val DB = listOf(0, -12, -24)
-    val LABELS = listOf("0 dB", "−12 dB", "−24 dB", "OFF")
-    /** Level [i] (0 to 3) as an amplitude: 10^(dB/20), and OFF is silence. */
-    fun gain(i: Int): Double = if (i in DB.indices) 10.0.pow(DB[i] / 20.0) else 0.0
+    val LABELS = listOf("0 dB", "−12 dB", "−24 dB")
+    /** How much of the button its light fills at each level: all of it, half, a line (drawn at least 3 dp). */
+    val FILL = listOf(1f, 0.5f, 0f)
+    /** Level [i] as an amplitude: 10^(dB/20). */
+    fun gain(i: Int): Double = 10.0.pow(DB[i.coerceIn(0, DB.size - 1)] / 20.0)
+    /** The level after [i]: full → half → line → full. */
+    fun next(i: Int): Int = (i + 1) % DB.size
 }
 
 object Shruti {
@@ -97,7 +104,7 @@ class Mixer(private val sampleRate: Int) {
 
     @Volatile var key: Int = 0
     private val open = BooleanArray(Shruti.COUNT)
-    /** Each reed's loudness (v9, a long press on its valve): 1 is 0 dB, 0 is OFF, the reed silent even when open. */
+    /** Each reed's loudness (v10, its button beside RESET): 1 is 0 dB; 0 would leave the reed silent even when open. */
     private val volume = DoubleArray(Shruti.COUNT) { 1.0 }
     private val gain = DoubleArray(Shruti.COUNT)
     private val phaseA = DoubleArray(Shruti.COUNT)
@@ -119,7 +126,7 @@ class Mixer(private val sampleRate: Int) {
     /** How far each reed is sounding, 0 to 1, for the screen. */
     @Synchronized fun level(valve: Int): Double =
         if (valve in 0 until Shruti.COUNT && volume[valve] > 0.0) minOf(1.0, gain[valve] / volume[valve]) else 0.0
-    /** Sets [valve]'s loudness, 0 (OFF) to 1 (0 dB); the reed glides there as it opens and closes. */
+    /** Sets [valve]'s loudness, 0 (silent) to 1 (0 dB); the reed glides there as it opens and closes. */
     @Synchronized fun setVolume(valve: Int, v: Double) { if (valve in 0 until Shruti.COUNT) volume[valve] = v.coerceIn(0.0, 1.0) }
     @Synchronized fun volume(valve: Int): Double = if (valve in 0 until Shruti.COUNT) volume[valve] else 0.0
     /** The bellows' breath now, 1 - depth to 1 + depth: the screen opens the bellows with it. */

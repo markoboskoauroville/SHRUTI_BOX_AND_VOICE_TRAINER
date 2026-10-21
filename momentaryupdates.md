@@ -100,3 +100,7 @@
 > now the tuner is much better. Please make this logic: when I press voice to record, it stops the playing of the shruti, and if I play shruti during voice recording, it stops voice recording
 
 7. VOICE stops the shruti (done in the second round); opening a valve or a preset while VOICE is on switches VOICE off.
+   **Status:** done, v6 (21.10.2026). Tried on Marko's Pixel 7: Pa playing, VOICE closed it at once and the
+   microphone opened; Pa while VOICE switched VOICE off and the microphone closed; VOICE again; Yaman while VOICE
+   switched it off and opened Sa Pa Sa'; no crash. Marko sang into the tuner build: "now the tuner is much better".
+   Released from main.

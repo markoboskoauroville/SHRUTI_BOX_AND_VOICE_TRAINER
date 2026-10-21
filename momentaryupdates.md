@@ -104,3 +104,11 @@
    microphone opened; Pa while VOICE switched VOICE off and the microphone closed; VOICE again; Yaman while VOICE
    switched it off and opened Sa Pa Sa'; no crash. Marko sang into the tuner build: "now the tuner is much better".
    Released from main.
+
+## v7 — requested 21.10.2026
+
+> please redo all pages with presets for keys and ragas. They are completely wrong, and please check if other pages are wrong. Check each preset if it's working fine. You need to research if it's true or if it's lying. You need to do the ground truth and check my app for truth and precision Please work so my presets are the right ones.
+
+1. Every preset checked against sources (ground truth), not taken from the reference page: the ragas (their drone,
+   thaat, notes, time), the drone combinations, the chords. What is false goes, what is true stays, with its source.
+2. Each preset tried on the phone: it opens exactly the valves it names, in every key.

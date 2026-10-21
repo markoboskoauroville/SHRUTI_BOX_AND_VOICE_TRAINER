@@ -51,3 +51,8 @@
 2. Redesigned in this app's style: black, light blue, rounded, monospace; the preset that sounds now glows.
 3. What the page has that a phone does not need: the light theme (this app is dark by request) and the computer
    keyboard shortcuts.
+   **Status:** done, v4 (21.10.2026). Every preset of the page in `Presets.kt`: 5 tabs, 41 cards (5, 6, 6, 12, 12, as
+   on the page), the page's notes in C turned into valves so they follow the key; names written as the app writes them
+   (ma plain, Ma sharp). GitHub Actions green (Test 1: 31 cases, 0 failures), release v4. On the Pixel 7 emulator in D:
+   CHORDS → Major opened Sa Ga Pa, the line read "D major", the card lit; the same card again closed them; no crash.
+   The light theme and the keyboard shortcuts of the page were left out (dark only by request; a phone has no keyboard).

@@ -53,3 +53,25 @@ class AutoRun(val notes: List<Int>, val playS: Double = 4.0, val holdS: Double =
             (listOf(start) + scale.filter { it > start } + 12).filter { it in 0..12 && it >= start }.distinct().sorted()
     }
 }
+
+/**
+ * ▶ SCALE (v7, the raga's notes heard in order): each of [notes] sounds alone for [stepS] seconds, then the next;
+ * the last one a little longer. Like [AutoRun] it is handed its clock, so Test 1 checks it without a phone.
+ */
+class ScaleRun(val notes: List<Int>, val stepS: Double = 0.7) {
+    var index = 0
+        private set
+    val done: Boolean get() = index >= notes.size
+    val note: Int get() = notes[index.coerceAtMost(notes.size - 1)]
+    private var since = Double.NaN
+
+    /** Moves on to [now] (seconds); true when the note changed or the scale ended. */
+    fun tick(now: Double): Boolean {
+        if (since.isNaN()) since = now
+        if (done) return false
+        val hold = if (index == notes.size - 1) stepS * 2 else stepS
+        if (now - since < hold - 1e-9) return false
+        index++; since = now
+        return true
+    }
+}

@@ -131,3 +131,14 @@
    (the walk with its own clock); the new icon in. Marko asked why most ragas are the same C G C: the drone is the
    same by tradition, the raga is in the notes sung over it; proposed to him: the raga's notes marked on the valves
    and a ▶ SCALE that plays aroha and avaroha. Waiting for his yes.
+
+## v7, second round — 21.10.2026
+
+> yes, mark ragas, and now you are the master session and compile all updates and push them to main
+
+5. The chosen raga's notes marked on the valves (a brighter outline and a dot of light at the foot), Sa' with Sa.
+6. ▶ SCALE on the chosen raga's card: its aroha then its avaroha as the card writes them (turns and all), one valve
+   at a time; ■ STOP or any other touch ends it, and the drone comes back when it ends.
+7. The icon finished: Sa and Pa in the halo the screen throws, and a themed (monochrome) icon of its own, open valves
+   filled and closed ones outlined, so Android 13+ no longer draws seven blobs.
+8. Everything of v7 gathered (the presets, AUTO, the icon, the marks, ▶ SCALE) and merged to main, released as v7.

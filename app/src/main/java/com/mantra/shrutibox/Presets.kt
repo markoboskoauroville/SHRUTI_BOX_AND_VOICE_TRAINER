@@ -11,13 +11,55 @@ package com.mantra.shrutibox
 // note the raga does not have.
 
 /**
- * One card. [valves] is what it opens (0 = Sa … 12 = Sa'). [scale] is the raga's notes, for the test; empty for a
- * drone or a chord. [level] is the small line under the name, [about] what it is, [usedIn] where it is used.
+ * One card. [valves] is what it opens (0 = Sa … 12 = Sa'). [scale] is the raga's notes, marked on the valves while
+ * the raga is chosen; empty for a drone or a chord. [up] and [down] are its aroha and avaroha as written on the card,
+ * which ▶ SCALE plays. [level] is the small line under the name, [about] what it is, [usedIn] where it is used.
  */
 class Preset(
     val name: String, val level: String, val about: String, val usedIn: String, val valves: List<Int>,
-    val scale: List<Int> = emptyList()
-)
+    val scale: List<Int> = emptyList(), val up: String = "", val down: String = ""
+) {
+    /**
+     * What ▶ SCALE plays: the aroha, then the avaroha, the turn at the top sounded once. An aroha that rises from a
+     * mandra Ni (Yaman, Puriya, Marwa) starts on Sa here: the box has no Ni below Sa, and Sa is where the ear stands.
+     */
+    val walk: List<Int> get() {
+        val a = Sargam.walk(up, upward = true).let { if (it.isNotEmpty() && it.first() != 0) listOf(0) + it else it }
+        val d = Sargam.walk(down, upward = false)
+        return if (a.isNotEmpty() && d.isNotEmpty() && a.last() == d.first()) a + d.drop(1) else a + d
+    }
+}
+
+/** A raga's line as the card writes it ("Ni Re Ga Ma Dha Ni Sa'", "Sa' ni Dha Pa, ma Pa…") turned into valves. */
+object Sargam {
+    private val PC = mapOf("Sa" to 0, "re" to 1, "Re" to 2, "ga" to 3, "Ga" to 4, "ma" to 5, "Ma" to 6, "Pa" to 7, "dha" to 8, "Dha" to 9, "ni" to 10, "Ni" to 11)
+
+    /**
+     * Each note is taken in the octave nearest the one before it (a leap of a tritone goes the way the line goes), then
+     * the whole line is placed so its first Sa is valve 0, or its first Sa' valve 12. Notes that fall outside the box,
+     * a mandra Ni before Sa or a re' over Sa', are left out: the box has one octave and its Sa'.
+     */
+    fun walk(line: String, upward: Boolean): List<Int> {
+        val tokens = line.split(' ', ',').map { it.trim() }.filter { it.isNotEmpty() }
+        if (tokens.isEmpty()) return emptyList()
+        val abs = ArrayList<Int>()
+        var anchor: Int? = null
+        for (t in tokens) {
+            val pc = PC[t.removeSuffix("'")] ?: error("no note $t in \"$line\"")
+            val a = if (abs.isEmpty()) pc else {
+                val prev = abs.last()
+                var d = Math.floorMod(pc - prev, 12)
+                if (d > 6 || (d == 6 && !upward)) d -= 12
+                prev + d
+            }
+            abs += a
+            if (anchor == null && t == "Sa") anchor = -a
+            if (anchor == null && t == "Sa'") anchor = 12 - a
+        }
+        val shift = anchor ?: 0
+        return abs.map { it + shift }.filter { it in 0..12 }
+    }
+}
 
 class PresetTab(val title: String, val intro: String, val presets: List<Preset>)
 
@@ -33,7 +75,7 @@ object Presets {
 
     private fun p(name: String, level: String, about: String, usedIn: String, notes: String) = Preset(name, level, about, usedIn, valves(notes))
     private fun raga(name: String, thaat: String, time: String, mood: String, up: String, down: String, drone: List<Int>, scale: List<Int>) =
-        Preset(name, "$thaat · $time".uppercase(), mood, "↑ $up   ↓ $down", drone, scale)
+        Preset(name, "$thaat · $time".uppercase(), mood, "↑ $up   ↓ $down", drone, scale, up, down)
 
     val TABS = listOf(
         PresetTab(

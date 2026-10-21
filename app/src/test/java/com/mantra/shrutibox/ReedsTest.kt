@@ -132,6 +132,27 @@ class ReedsTest {
         assertEquals(AutoRun.Phase.DONE, r.phase)
     }
 
+    // ▶ SCALE (v7): each raga's aroha and avaroha as the card writes them, read into valves
+    private fun raga(name: String) = Presets.TABS[1].presets.first { it.name == name }
+    @Test fun bhairavWalksUpAndDown() = assertEquals(
+        listOf(0, 1, 4, 5, 7, 8, 11, 12, 11, 8, 7, 5, 4, 1, 0), raga("Bhairav").walk)
+    @Test fun yamanRisesFromSaNotTheMandraNi() = assertEquals(listOf(0, 2, 4, 6, 9, 11, 12), raga("Yaman").walk.take(7))
+    @Test fun marwaLeavesOutTheReOverSa() = assertEquals(listOf(12, 11, 9, 6, 4, 1, 0), raga("Marwa").walk.takeLast(7))
+    @Test fun kedarKeepsItsZigzag() = assertEquals(listOf(0, 5, 5, 7, 9, 7, 11, 9, 12), Sargam.walk("Sa ma, ma Pa, Dha Pa, Ni Dha Sa'", upward = true))
+    @Test fun bageshriComesDownThroughItsTurns() = assertEquals(
+        listOf(12, 10, 9, 5, 7, 9, 3, 5, 3, 2, 0), Sargam.walk("Sa' ni Dha ma Pa Dha ga ma ga Re Sa", upward = false))
+    @Test fun everyRagaWalksOnlyItsOwnNotes() = Presets.TABS[1].presets.forEach { r ->
+        val w = r.walk
+        assertTrue(r.name, w.size >= 10)
+        assertEquals(r.name, 0, w.first()); assertEquals(r.name, 0, w.last()); assertTrue(r.name, 12 in w)
+        w.forEach { assertTrue("${r.name} sounds ${Shruti.NAMES[it]}", it in r.scale || it == 12) }
+    }
+    @Test fun scaleStepsAndHoldsTheLast() {
+        val s = ScaleRun(listOf(0, 7, 12), stepS = 0.5)
+        assertFalse(s.tick(0.0)); assertFalse(s.tick(0.4)); assertTrue(s.tick(0.5)); assertEquals(7, s.note)
+        assertTrue(s.tick(1.0)); assertEquals(12, s.note); assertFalse(s.tick(1.9)); assertTrue(s.tick(2.0)); assertTrue(s.done)
+    }
+
     @Test fun waveIsNormalised() {
         val p = Wave.table.maxOf { abs(it) }
         assertEquals(1f, p, 1e-4f)

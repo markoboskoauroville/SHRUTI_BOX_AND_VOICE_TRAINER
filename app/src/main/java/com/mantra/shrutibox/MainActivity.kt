@@ -194,6 +194,10 @@ private fun openLatest(c: Context) {
     }
 }
 
+/** The valves of the card [chosen], to sound again when ▶ SCALE ends. */
+private fun chosenPresetValves(chosen: Pair<Int, Int>?): List<Int> =
+    chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i)?.valves }.orEmpty()
+
 /** The tuner's last reading, handed from the trainer to the auto walk without a recomposition per frame. */
 private class Readout { var percent: Double? = null }
 
@@ -222,12 +226,18 @@ private fun ShrutiScreen(
     var step by remember { mutableIntStateOf(0) }
     var autoDone by remember { mutableStateOf(false) }
     val readout = remember { Readout() }
+    // ▶ SCALE (v7): the chosen raga's aroha and avaroha, one valve at a time, then its drone again
+    var scaleRun by remember { mutableStateOf<ScaleRun?>(null) }
     val pal = PALETTES[settings.palette]
+    val chosenPreset = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }
+    // the chosen raga's notes, marked on the valves (v7, Marko: "yes, mark ragas"); Sa' is Sa, so it is marked too
+    val marks = chosenPreset?.scale?.takeIf { it.isNotEmpty() }?.let { it.toSet() + 12 } ?: emptySet()
 
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
-    fun hushAll() { mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun hushAll() { scaleRun = null; mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun sound(valves: Collection<Int>) { mixer.closeAll(); for (i in 0 until Shruti.COUNT) { open[i] = i in valves; mixer.setOpen(i, open[i]) } }
     fun autoPlay(r: AutoRun) { hushAll(); open[r.note] = true; mixer.setOpen(r.note, true); target = r.note; armed = false }
     fun startAuto(v: Int) {
         if (!micGranted) askMic()
@@ -237,6 +247,10 @@ private fun ShrutiScreen(
     }
     LaunchedEffect(Unit) {
         while (isActive) withFrameNanos { now ->
+            val sr = scaleRun
+            if (sr != null && sr.tick(now / 1e9)) {
+                if (sr.done) { scaleRun = null; sound(chosenPresetValves(chosen)) } else sound(listOf(sr.note))
+            }
             val r = run
             if (r != null && r.tick(now / 1e9, readout.percent)) {
                 when (r.phase) {
@@ -252,9 +266,17 @@ private fun ShrutiScreen(
     // the shruti and the voice take turns (Marko, v6): opening a valve or a preset switches VOICE off
     fun toggle(v: Int) {
         if (auto) { startAuto(v); return }
+        scaleRun = null
         val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false }
     }
-    fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+    fun closeAll() { scaleRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+    fun playScale() {
+        val p = chosenPreset ?: return
+        if (scaleRun != null) { scaleRun = null; sound(p.valves); return }
+        if (auto) { auto = false; run = null; autoDone = false }
+        armed = false
+        val sr = ScaleRun(p.walk); scaleRun = sr; sound(listOf(sr.note)); target = null
+    }
     fun choose(t: Int, i: Int) {
         val p = Presets.TABS[t].presets[i]
         val again = chosen == (t to i)
@@ -271,13 +293,13 @@ private fun ShrutiScreen(
             SettingsScreen(settings, pal, onVersion) { inSettings = false; onSettings() }
             return@Box
         }
-        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames) { toggle(it) } }
+        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks) { toggle(it) } }
         // the chosen card names what sounds (Sus2 and Sus4 on Pa are the same notes; a raga is not a chord)
         val cardName = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
         val notes: @Composable () -> Unit = { if (settings.showNotes) NotesRow(openValves, key, pal, anyOpen, cardName) { closeAll() } }
         val keys: @Composable () -> Unit = { if (settings.showKeys) KeyRow(key, pal) { key = it; mixer.key = it; onKey(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
-            PresetPanel(tab, chosen, openValves, key, pal, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
+            PresetPanel(tab, chosen, openValves, key, pal, scaleRun != null, onScale = { playScale() }, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
         }
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
         val autoStatus = if (!auto) null else run?.let { r ->
@@ -292,7 +314,7 @@ private fun ShrutiScreen(
                     if (!auto) { run = null; autoDone = false; hushAll(); armed = false } else if (!micGranted) askMic()
                 }) {
                 // VOICE stops the shruti at once: the microphone must hear the singer, never the box
-                if (!armed || !micGranted) { mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+                if (!armed || !micGranted) { hushAll(); chosen = null }
                 if (!micGranted) { askMic(); armed = true } else armed = !armed
             }
         }
@@ -401,14 +423,15 @@ private fun NotesRow(openValves: List<Int>, key: Int, pal: Palette, anyOpen: Boo
 /** The page's five tabs of presets and their cards. A card lights while it is the chosen one and its valves sound. */
 @Composable
 private fun ColumnScope.PresetPanel(
-    tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, onTab: (Int) -> Unit, onChoose: (Int, Int) -> Unit
+    tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, scaling: Boolean, onScale: () -> Unit,
+    onTab: (Int) -> Unit, onChoose: (Int, Int) -> Unit
 ) {
     Box(Modifier.padding(top = 14.dp, bottom = 10.dp)) { Pills(Presets.TABS.map { it.title }, tab, pal, height = 36, fontSize = 10, onPick = onTab) }
     val current = Presets.TABS[tab]
     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
         BasicText(current.intro, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)), modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
         current.presets.forEachIndexed { i, p ->
-            val sounding = chosen == (tab to i) && openValves == p.valves.sorted()
+            val sounding = chosen == (tab to i) && (openValves == p.valves.sorted() || scaling)
             Column(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     .background(if (sounding) pal.cardOn else BLACK, RoundedCornerShape(16.dp))
@@ -420,6 +443,14 @@ private fun ColumnScope.PresetPanel(
                     BasicText(p.name, style = MONO.copy(fontSize = 14.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold, color = if (sounding) pal.core else pal.light))
                     Spacer(Modifier.weight(1f))
                     BasicText(p.valves.sorted().joinToString(" ") { Shruti.western(key, it) }, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.halo))
+                    // the chosen raga plays its aroha and avaroha; a second tap stops it and the drone returns
+                    if (sounding && p.up.isNotEmpty()) Box(
+                        Modifier.padding(start = 10.dp).height(30.dp)
+                            .background(if (scaling) pal.light else BLACK, RoundedCornerShape(15.dp))
+                            .border(1.dp, pal.light, RoundedCornerShape(15.dp))
+                            .clickable(onClick = onScale).padding(horizontal = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) { BasicText(if (scaling) "■ STOP" else "▶ SCALE", style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold, color = if (scaling) pal.ink else pal.light)) }
                 }
                 if (p.level.isNotEmpty()) BasicText(p.level.uppercase(), style = MONO.copy(fontSize = 9.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
                 BasicText(p.about, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.75f)), modifier = Modifier.padding(top = 4.dp))
@@ -580,7 +611,7 @@ private fun Trainer(
 
 /** The box itself: the thirteen valves, drawn every frame so the glow breathes with the bellows. */
 @Composable
-private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, showNames: Boolean, onToggle: (Int) -> Unit) {
+private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, showNames: Boolean, marks: Set<Int>, onToggle: (Int) -> Unit) {
     var frame by remember { mutableLongStateOf(0L) }
     val tabs = remember { mutableStateListOf<Tab>() }
     val measurer = rememberTextMeasurer()
@@ -603,7 +634,7 @@ private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, 
         val t = frame / 1e9
         for (upper in listOf(false, true)) for (vt in laid.filter { it.upper == upper }) {
             val on = open[vt.valve]
-            drawValve(vt, on, mixer.level(vt.valve).toFloat(), breath, t, pal)
+            drawValve(vt, on, vt.valve in marks, mixer.level(vt.valve).toFloat(), breath, t, pal)
             if (!showNames) continue
             // the Western note over the Indian name, in the middle of the valve, as on the page
             val ink = if (on) pal.ink else pal.light
@@ -636,8 +667,11 @@ private fun DrawScope.layValves(): List<Tab> {
     return tabs
 }
 
-/** A closed valve is a thin line of light; an open one burns in the scheme's light with a white heart and a halo that breathes. */
-private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, level: Float, breath: Float, t: Double, pal: Palette) {
+/**
+ * A closed valve is a thin line of light; an open one burns in the scheme's light with a white heart and a halo that
+ * breathes. A valve [marked] as a note of the chosen raga has a brighter outline and a dot of light at its foot.
+ */
+private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, marked: Boolean, level: Float, breath: Float, t: Double, pal: Palette) {
     val r = tab.rect
     val radius = CornerRadius(minOf(r.width, r.height) * 0.22f)
     val edge = r.width * 0.035f
@@ -645,7 +679,8 @@ private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, level: Float, breath:
     // at rest: black (an upper valve hides what it lies over), a faint inner light and an outline
     drawRoundRect(BLACK, r.topLeft, r.size, radius)
     drawRoundRect(Brush.verticalGradient(listOf(pal.faint.copy(alpha = 0.7f), BLACK), r.top, r.bottom), r.topLeft, r.size, radius)
-    drawRoundRect(if (isOpen) pal.light else pal.line, r.topLeft, r.size, radius, style = Stroke(width = edge))
+    drawRoundRect(if (isOpen) pal.light else if (marked) pal.light.copy(alpha = 0.75f) else pal.line, r.topLeft, r.size, radius, style = Stroke(width = edge))
+    if (marked) drawCircle(pal.halo, r.width * 0.07f, Offset(r.center.x, r.bottom - r.width * 0.2f))
     if (level <= 0f) return
 
     // the halo: a real blur around the valve, wider and brighter as the bellows breathe in

@@ -251,7 +251,9 @@ private fun ShrutiScreen(
 
     // the shruti and the voice take turns (Marko, v6): opening a valve or a preset switches VOICE off
     fun toggle(v: Int) {
-        if (auto) { startAuto(v); return } val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false } }
+        if (auto) { startAuto(v); return }
+        val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false }
+    }
     fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     fun choose(t: Int, i: Int) {
         val p = Presets.TABS[t].presets[i]

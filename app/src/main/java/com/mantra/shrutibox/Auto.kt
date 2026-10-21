@@ -28,11 +28,11 @@ class AutoRun(val notes: List<Int>, val playS: Double = 4.0, val holdS: Double =
     fun tick(now: Double, percent: Double?): Boolean {
         if (since.isNaN()) since = now
         when (phase) {
-            Phase.PLAY -> if (now - since >= playS) { phase = Phase.SING; since = now; onNoteSince = null; return true }
+            Phase.PLAY -> if (now - since >= playS - 1e-9) { phase = Phase.SING; since = now; onNoteSince = null; return true }
             Phase.SING -> {
                 if (percent != null && abs(percent) <= within) {
                     val from = onNoteSince ?: now.also { onNoteSince = it }
-                    if (now - from >= holdS) {
+                    if (now - from >= holdS - 1e-9) {
                         index++; since = now; onNoteSince = null
                         phase = if (index >= notes.size) Phase.DONE else Phase.PLAY
                         return true

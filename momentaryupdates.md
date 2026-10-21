@@ -21,3 +21,7 @@
 2. The placement stays: eight natural valves along the bottom (Sa Re Ga Ma Pa Dha Ni Sa'), the five between them above
    (re ga Ma dha ni), as in the reference page. The action stays: a tap opens a valve, a tap again closes it.
 3. The valves light blue and glowing, a soft light from another dimension, the reality of angels.
+   **Status:** done, v2 (21.10.2026). Built by GitHub Actions (green, release v2 `2-shrutibox-v2.apk`, 713 KB, same
+   key). Tried on the Pixel 7 emulator in portrait: the bars hide, the thirteen capsules fill the screen, Sa, Pa and
+   the upper Ma opened and glowed (blurred halo, white heart, rising light), OFF closed them, no crash. Waiting for
+   Marko's eye and thumb on the phone.

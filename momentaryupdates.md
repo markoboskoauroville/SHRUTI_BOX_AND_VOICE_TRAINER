@@ -152,3 +152,6 @@
    plays 3 s, then the voice sings it; within ±20 % of the note for 2 s goes to the next.
 3. AUTO again stops it; the next AUTO starts from the beginning. While it runs, a tap on a valve makes that note the
    new beginning and the walk goes on from there.
+   **Status:** released as v8 from main (21.10.2026) on Marko's word, "no need to test, just push". GitHub Actions green
+   on the test branch; ARP tried on the Pixel 7 (C E G in turn, ARP off brings the chord back); the new AUTO not
+   tried on the phone before the release.

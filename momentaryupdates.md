@@ -112,3 +112,8 @@
 1. Every preset checked against sources (ground truth), not taken from the reference page: the ragas (their drone,
    thaat, notes, time), the drone combinations, the chords. What is false goes, what is true stays, with its source.
 2. Each preset tried on the phone: it opens exactly the valves it names, in every key.
+
+> Please make new icon for this app which reflects its looks, how the actual buttons, its colors, how they look like. So the style of keys needs to be icon.
+
+3. A new icon in the app's own look: the valves as they are on the screen (the eight below, the upper ones over the
+   gaps), black ground, light-blue glowing keys; the version number stays under it (version-visible.md).

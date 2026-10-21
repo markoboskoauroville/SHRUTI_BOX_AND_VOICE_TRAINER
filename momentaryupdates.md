@@ -124,3 +124,10 @@
    4 seconds, then the shruti stops and the microphone listens; when the voice is on the note (within ±10 %, held a
    moment) the next note plays 4 seconds, then the microphone again, and so on to the end of the scale (the chosen
    raga's notes up to Sa', or Sa Re Ga ma Pa Dha Ni Sa'). AUTO off stops everything.
+   **Status (21.10.2026, v7 on the test branch, not released):** the presets rebuilt from sources (DRONES 8, RAGAS 24,
+   CHORDS 11; sources in Presets.kt); Test 1 checks that no raga's drone sounds a note the raga lacks, the known
+   tunings (Puriya, Marwa on Ni; Malkauns, Bageshri on ma) and every chord's name. On Marko's Pixel 7 a script tapped
+   all 43 cards: each opened exactly its valves and closed on the second tap, 43 of 43. AUTO built and unit-tested
+   (the walk with its own clock); the new icon in. Marko asked why most ragas are the same C G C: the drone is the
+   same by tradition, the raga is in the notes sung over it; proposed to him: the raga's notes marked on the valves
+   and a ▶ SCALE that plays aroha and avaroha. Waiting for his yes.

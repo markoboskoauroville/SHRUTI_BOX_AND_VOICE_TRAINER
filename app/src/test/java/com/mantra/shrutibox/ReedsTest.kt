@@ -42,6 +42,37 @@ class ReedsTest {
     @Test fun pageNotesBecomeValves() = assertEquals(listOf(0, 6, 7, 12), Presets.valves("C,F#,G,C2"))
     @Test fun aChordPresetIsDetected() = assertEquals("G major", Shruti.detect(0, Presets.TABS[4].presets[2].valves))
 
+    // the voice trainer's ear (v6): tones of known pitch, a voice-like one with harmonics, silence, noise
+    private fun tone(hz: Double, n: Int = 4096, harmonics: Int = 1, amp: Double = 0.3) = FloatArray(n) { i ->
+        var s = 0.0
+        for (h in 1..harmonics) s += amp / h * kotlin.math.sin(2 * Math.PI * hz * h * i / rate)
+        s.toFloat()
+    }
+    @Test fun hearsASineWithinTwoPercent() = listOf(98.0, 130.8128, 196.0, 261.63, 440.0, 880.0).forEach { hz ->
+        val got = Pitch.detect(tone(hz), 4096, rate)!!
+        assertEquals("at $hz", 0.0, Pitch.percentOff(got, hz), 2.0)
+    }
+    @Test fun hearsAVoiceWithHarmonics() {
+        val got = Pitch.detect(tone(220.0, harmonics = 8), 4096, rate)!!
+        assertEquals(0.0, Pitch.percentOff(got, 220.0), 2.0)
+    }
+    @Test fun hearsTwentyPercentSharp() {
+        val hz = 196.0 * 2.0.pow(20.0 / 1200)
+        assertEquals(20.0, Pitch.percentOff(Pitch.detect(tone(hz), 4096, rate)!!, 196.0), 2.0)
+    }
+    @Test fun silenceHasNoPitch() = assertEquals(null, Pitch.detect(FloatArray(4096), 4096, rate))
+    @Test fun noiseHasNoPitch() {
+        val r = java.util.Random(7)
+        assertEquals(null, Pitch.detect(FloatArray(4096) { (r.nextGaussian() * 0.2).toFloat() }, 4096, rate))
+    }
+    @Test fun anOctaveIsOnTheNote() { assertEquals(0.0, Pitch.percentOff(440.0, 220.0), 1e-9); assertEquals(0.0, Pitch.percentOff(110.0, 440.0), 1e-9) }
+    @Test fun flatIsMinus() = assertEquals(-30.0, Pitch.percentOff(220.0 * 2.0.pow(-30.0 / 1200), 220.0), 1e-6)
+    @Test fun aSemitoneIsAHundred() = assertEquals(100.0, Pitch.percentOff(220.0 * 2.0.pow(1.0 / 12), 220.0), 1e-6)
+    @Test fun ledsFromTheMiddle() {
+        assertEquals(0, Pitch.led(3.0)); assertEquals(2, Pitch.led(18.0)); assertEquals(-1, Pitch.led(-12.0))
+        assertEquals(Pitch.SIDE, Pitch.led(300.0)); assertEquals(-Pitch.SIDE, Pitch.led(-90.0))
+    }
+
     @Test fun waveIsNormalised() {
         val p = Wave.table.maxOf { abs(it) }
         assertEquals(1f, p, 1e-4f)

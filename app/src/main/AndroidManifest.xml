@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- No permissions at all: the reeds are synthesised on the phone, nothing is recorded, nothing is fetched. -->
+<!-- One permission: the microphone, for the voice trainer (v6), asked for the first time the trainer is switched on.
+     The reeds are synthesised on the phone; the voice is heard frame by frame and never kept; nothing is fetched. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

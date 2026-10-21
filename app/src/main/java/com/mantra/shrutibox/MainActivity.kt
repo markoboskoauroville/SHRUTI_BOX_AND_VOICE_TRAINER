@@ -1,11 +1,13 @@
 package com.mantra.shrutibox
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ActivityInfo
+import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
 import android.os.Bundle
 import android.view.WindowManager
@@ -13,6 +15,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -42,6 +45,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -49,6 +53,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -76,6 +81,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import androidx.core.view.WindowCompat
@@ -83,7 +89,9 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.isActive
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 // v2 (Marko, 21.10.2026): not a wooden box any more. Black ground, the whole screen is the instrument, the valves
@@ -119,15 +127,20 @@ private class Settings(prefs: SharedPreferences) {
     var showPresets by mutableStateOf(prefs.getBoolean("showPresets", true))
     var showKeys by mutableStateOf(prefs.getBoolean("showKeys", true))
     var showNames by mutableStateOf(prefs.getBoolean("showNames", true))
+    var showTrainer by mutableStateOf(prefs.getBoolean("showTrainer", true))
 
     fun save(prefs: SharedPreferences) = prefs.edit {
         putInt("palette", palette); putBoolean("landscape", landscape); putBoolean("showNotes", showNotes)
         putBoolean("showPresets", showPresets); putBoolean("showKeys", showKeys); putBoolean("showNames", showNames)
+        putBoolean("showTrainer", showTrainer)
     }
 }
 
 class MainActivity : ComponentActivity() {
     private val engine = Engine()
+    private val ear = Ear()
+    private val micGranted = mutableStateOf(false)
+    private val askMic = registerForActivityResult(ActivityResultContracts.RequestPermission()) { micGranted.value = it }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -140,10 +153,14 @@ class MainActivity : ComponentActivity() {
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         engine.mixer.key = prefs.getInt("key", 0).coerceIn(0, 11)
         val settings = Settings(prefs)
+        micGranted.value = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         fixLayout(settings.landscape)
         setContent {
             ShrutiScreen(
                 mixer = engine.mixer,
+                ear = ear,
+                micGranted = micGranted.value,
+                askMic = { askMic.launch(Manifest.permission.RECORD_AUDIO) },
                 settings = settings,
                 startTab = prefs.getInt("tab", 0),
                 onKey = { prefs.edit { putInt("key", it) } },
@@ -166,7 +183,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onStart() { super.onStart(); engine.start() }
-    override fun onStop() { engine.stop(); super.onStop() }
+    override fun onStop() { ear.listen(false); engine.stop(); super.onStop() }
 }
 
 private fun openLatest(c: Context) {
@@ -184,7 +201,7 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 
 @Composable
 private fun ShrutiScreen(
-    mixer: Mixer, settings: Settings, startTab: Int, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
+    mixer: Mixer, ear: Ear, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
     onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
@@ -193,18 +210,21 @@ private fun ShrutiScreen(
     // the card that was tapped, as tab and place: ten ragas share Sa Pa Sa', so the valves alone cannot say which
     var chosen by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var inSettings by remember { mutableStateOf(false) }
+    // the voice trainer: the last valve opened is the note to sing back; armed is its switch
+    var target by remember { mutableStateOf<Int?>(null) }
+    var armed by remember { mutableStateOf(false) }
     val pal = PALETTES[settings.palette]
 
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
-    fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now) }
+    fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) target = v }
     fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     fun choose(t: Int, i: Int) {
         val p = Presets.TABS[t].presets[i]
         val again = chosen == (t to i)
         closeAll()
-        if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i }
+        if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i; target = p.valves.min() }
     }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
@@ -222,16 +242,22 @@ private fun ShrutiScreen(
             PresetPanel(tab, chosen, openValves, key, pal, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
         }
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
+        val trainer: @Composable () -> Unit = {
+            if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted) {
+                if (!micGranted) { askMic(); armed = true } else armed = !armed
+            }
+        }
 
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (maxWidth > maxHeight && !settings.showPresets) {
                 // landscape without presets: the box alone in the middle, as wide as the height leaves room for
-                val reserve = 54.dp + (if (settings.showNotes) 52.dp else 0.dp) + (if (settings.showKeys) 58.dp else 0.dp)
+                val reserve = 54.dp + (if (settings.showNotes) 52.dp else 0.dp) + (if (settings.showKeys) 58.dp else 0.dp) +
+                    (if (settings.showTrainer) 70.dp else 0.dp)
                 val boxWidth = minOf(maxWidth, (maxHeight - reserve) * (BOX_W / BOX_H))
                 Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
                     Spacer(Modifier.weight(1f))
-                    Column(Modifier.width(boxWidth)) { box(); notes() }
+                    Column(Modifier.width(boxWidth)) { box(); notes(); trainer() }
                     Spacer(Modifier.weight(1f))
                     keys()
                 }
@@ -239,7 +265,7 @@ private fun ShrutiScreen(
                 // landscape: the box, its notes and the keys on the left, the presets on the right
                 Row(Modifier.fillMaxSize()) {
                     Column(Modifier.weight(1.15f).fillMaxHeight()) {
-                        Spacer(Modifier.weight(1f)); box(); notes(); Spacer(Modifier.weight(1f)); keys()
+                        Spacer(Modifier.weight(1f)); box(); notes(); trainer(); Spacer(Modifier.weight(1f)); keys()
                     }
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -251,7 +277,7 @@ private fun ShrutiScreen(
                 Column(Modifier.fillMaxSize()) {
                     Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
                     if (!settings.showPresets) Spacer(Modifier.weight(1f))
-                    box(); notes()
+                    box(); notes(); trainer()
                     if (settings.showPresets) presets() else Spacer(Modifier.weight(1f))
                     keys()
                 }
@@ -374,6 +400,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, onVersion: () -> Unit, onD
             Triple("RESET AND NOTES", s.showNotes) { v: Boolean -> s.showNotes = v },
             Triple("PRESETS", s.showPresets) { v: Boolean -> s.showPresets = v },
             Triple("KEYS", s.showKeys) { v: Boolean -> s.showKeys = v },
+            Triple("VOICE TRAINER", s.showTrainer) { v: Boolean -> s.showTrainer = v },
         )) {
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp).border(1.dp, if (on) pal.light else pal.faint, RoundedCornerShape(22.dp))
@@ -391,6 +418,96 @@ private fun SettingsScreen(s: Settings, pal: Palette, onVersion: () -> Unit, onD
             style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = pal.light),
             modifier = Modifier.clickable(onClick = onVersion).padding(vertical = 10.dp)
         )
+    }
+}
+
+/**
+ * The voice trainer (v6): play a valve, close it, and when the reed has died away the microphone opens; sing the note
+ * back. A row of oval LEDs as on a tuner: the middle one is the exact note, the last valve opened, named under it;
+ * flat lights to the left, sharp to the right, each LED ten percent of a semitone; the number says how far, ±.
+ */
+@Composable
+private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette, armed: Boolean, onArm: () -> Unit) {
+    val live by rememberUpdatedState(armed && target != null)
+    val goal by rememberUpdatedState(target?.let { Shruti.freq(key, it) })
+    var listening by remember { mutableStateOf(false) }
+    var percent by remember { mutableStateOf<Double?>(null) }
+    var shownAt by remember { mutableLongStateOf(0L) }
+    val recent = remember { ArrayDeque<Double>() }
+    LaunchedEffect(Unit) {
+        var seen = 0L
+        while (isActive) withFrameNanos { now ->
+            // the microphone only while the trainer is on and every reed has died away: it never hears the shruti
+            val silent = (0 until Shruti.COUNT).all { mixer.level(it) == 0.0 }
+            val want = live && silent && !ear.failed
+            if (want != ear.on) ear.listen(want)
+            listening = ear.on
+            if (!listening) { recent.clear() } else if (ear.heardAt != seen) {
+                seen = ear.heardAt
+                val hz = ear.hz
+                val g = goal
+                if (hz > 0 && g != null) {
+                    // the median of the last five frames (about 0.4 s): a wavering voice reads steady
+                    recent.addLast(Pitch.percentOff(hz, g)); if (recent.size > 5) recent.removeFirst()
+                    percent = recent.sorted()[recent.size / 2]; shownAt = now
+                } else recent.clear()
+            }
+            // the last reading stays for a second and a half after the voice stops, then the row goes dark
+            if (percent != null && now - shownAt > 1_500_000_000L) percent = null
+        }
+    }
+    DisposableEffect(Unit) { onDispose { ear.listen(false) } }
+
+    val p = percent
+    val lit = p?.let { Pitch.led(it) }
+    val label = target?.let { "${Shruti.NAMES[it]} ${Shruti.western(key, it)}" } ?: "—"
+    Row(Modifier.fillMaxWidth().padding(top = 12.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.height(40.dp)
+                .background(if (armed) pal.light else BLACK, RoundedCornerShape(20.dp))
+                .border(1.dp, if (armed) pal.light else pal.faint, RoundedCornerShape(20.dp))
+                .clickable(onClick = onArm)
+                .padding(horizontal = 18.dp),
+            contentAlignment = Alignment.Center
+        ) { BasicText("VOICE", style = MONO.copy(color = if (armed) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 12.sp)) }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+            Canvas(Modifier.fillMaxWidth().height(22.dp)) {
+                val n = Pitch.SIDE * 2 + 1
+                val slot = size.width / n
+                for (i in 0 until n) {
+                    val led = i - Pitch.SIDE
+                    val middle = led == 0
+                    val w = slot * (if (middle) 0.78f else 0.6f)
+                    val h = size.height * (if (middle) 0.9f else 0.62f)
+                    val tl = Offset(slot * i + (slot - w) / 2f, (size.height - h) / 2f)
+                    if (lit == led) {
+                        drawIntoCanvas { c ->
+                            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+                            paint.maskFilter = BlurMaskFilter(h * 0.6f, BlurMaskFilter.Blur.NORMAL)
+                            paint.color = pal.halo.toArgb()
+                            c.nativeCanvas.drawOval(tl.x, tl.y, tl.x + w, tl.y + h, paint)
+                        }
+                        drawOval(if (middle) pal.core else pal.light, tl, Size(w, h))
+                    } else {
+                        drawOval(pal.faint.copy(alpha = if (middle) 0.9f else 0.6f), tl, Size(w, h))
+                        drawOval(if (middle) pal.line else pal.faint, tl, Size(w, h), style = Stroke(width = 1.5f))
+                    }
+                }
+            }
+            val words = when {
+                !armed -> label
+                target == null -> "play a note"
+                !listening -> "close the shruti, then sing $label"
+                p == null -> "sing $label"
+                else -> (if (p > 0.5) "+" else if (p < -0.5) "−" else "") + "${abs(p).roundToInt()} %   $label"
+            }
+            BasicText(
+                words,
+                style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = if (p != null && abs(p) < 5) pal.halo else pal.light.copy(alpha = 0.8f), fontWeight = if (p != null) FontWeight.Bold else FontWeight.Normal),
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
     }
 }
 

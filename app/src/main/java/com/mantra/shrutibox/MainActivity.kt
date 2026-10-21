@@ -224,7 +224,18 @@ private fun ShrutiScreen(
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
 
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            if (maxWidth > maxHeight) {
+            if (maxWidth > maxHeight && !settings.showPresets) {
+                // landscape without presets: the box alone in the middle, as wide as the height leaves room for
+                val reserve = 54.dp + (if (settings.showNotes) 52.dp else 0.dp) + (if (settings.showKeys) 58.dp else 0.dp)
+                val boxWidth = minOf(maxWidth, (maxHeight - reserve) * (BOX_W / BOX_H))
+                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
+                    Spacer(Modifier.weight(1f))
+                    Column(Modifier.width(boxWidth)) { box(); notes() }
+                    Spacer(Modifier.weight(1f))
+                    keys()
+                }
+            } else if (maxWidth > maxHeight) {
                 // landscape: the box, its notes and the keys on the left, the presets on the right
                 Row(Modifier.fillMaxSize()) {
                     Column(Modifier.weight(1.15f).fillMaxHeight()) {

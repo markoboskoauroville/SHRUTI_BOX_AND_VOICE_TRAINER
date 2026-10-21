@@ -1,13 +1,17 @@
 package com.mantra.shrutibox
 
+import android.annotation.SuppressLint
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.ActivityInfo
 import android.graphics.BlurMaskFilter
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
@@ -17,16 +21,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -39,6 +47,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -51,12 +60,13 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
@@ -73,20 +83,48 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.isActive
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
-// v2 (Marko, 21.10.2026): not a wooden box any more. Black ground, the whole portrait screen is the instrument, the
-// valves light blue and glowing, "as if coming from another dimension, from the reality of angels".
+// v2 (Marko, 21.10.2026): not a wooden box any more. Black ground, the whole screen is the instrument, the valves
+// glowing "as if coming from another dimension, from the reality of angels". v5: the cold blue of v2 and a warm orange,
+// chosen in settings.
 private val BLACK = Color(0xFF000000)
-private val ANGEL = Color(0xFF9FE3FF)       // the light blue of a valve
-private val CORE = Color(0xFFF2FCFF)        // the white heart of an open one
-private val HALO = Color(0xFF5CC8FF)        // the light it throws around itself
-private val LINE = Color(0xFF2E5F78)        // a closed valve's outline, the words at rest
-private val FAINT = Color(0xFF16303D)
 
-/** version-visible.md §3: the number in the header opens the latest build. */
+/** One colour scheme: the light of a valve, its white heart, the halo it throws, the lines and faint fills at rest. */
+private class Palette(
+    val name: String, val light: Color, val core: Color, val halo: Color, val line: Color, val faint: Color,
+    val cardOn: Color, val ink: Color
+)
+
+private val COLD = Palette(
+    "COLD", light = Color(0xFF9FE3FF), core = Color(0xFFF2FCFF), halo = Color(0xFF5CC8FF), line = Color(0xFF2E5F78),
+    faint = Color(0xFF16303D), cardOn = Color(0xFF0A2633), ink = Color(0xFF05222E)
+)
+private val WARM = Palette(
+    "WARM", light = Color(0xFFFFC487), core = Color(0xFFFFF5E8), halo = Color(0xFFFF9A3C), line = Color(0xFF7A4A22),
+    faint = Color(0xFF3A2210), cardOn = Color(0xFF331D0B), ink = Color(0xFF2E1503)
+)
+private val PALETTES = listOf(COLD, WARM)
+
+/** version-visible.md §3: the version, now in settings, opens the latest build. */
 private const val LATEST = "https://github.com/markoboskoauroville/MANTRA_SHRUTI_BOX/releases/latest"
 private const val PREFS = "shruti"
+
+/** What settings hold, every one kept in the preferences. */
+private class Settings(prefs: SharedPreferences) {
+    var palette by mutableIntStateOf(prefs.getInt("palette", 0).coerceIn(0, PALETTES.size - 1))
+    var landscape by mutableStateOf(prefs.getBoolean("landscape", false))
+    var showNotes by mutableStateOf(prefs.getBoolean("showNotes", true))
+    var showPresets by mutableStateOf(prefs.getBoolean("showPresets", true))
+    var showKeys by mutableStateOf(prefs.getBoolean("showKeys", true))
+    var showNames by mutableStateOf(prefs.getBoolean("showNames", true))
+
+    fun save(prefs: SharedPreferences) = prefs.edit {
+        putInt("palette", palette); putBoolean("landscape", landscape); putBoolean("showNotes", showNotes)
+        putBoolean("showPresets", showPresets); putBoolean("showKeys", showKeys); putBoolean("showNames", showNames)
+    }
+}
 
 class MainActivity : ComponentActivity() {
     private val engine = Engine()
@@ -101,12 +139,16 @@ class MainActivity : ComponentActivity() {
         }
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         engine.mixer.key = prefs.getInt("key", 0).coerceIn(0, 11)
+        val settings = Settings(prefs)
+        fixLayout(settings.landscape)
         setContent {
             ShrutiScreen(
                 mixer = engine.mixer,
+                settings = settings,
                 startTab = prefs.getInt("tab", 0),
                 onKey = { prefs.edit { putInt("key", it) } },
                 onTab = { prefs.edit { putInt("tab", it) } },
+                onSettings = { settings.save(prefs); fixLayout(settings.landscape) },
                 onAnyOpen = { open ->
                     // a drone is played with the hands busy: the screen stays on while a reed sounds
                     if (open) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -115,6 +157,12 @@ class MainActivity : ComponentActivity() {
                 onVersion = { openLatest(this) }
             )
         }
+    }
+
+    // The layout is fixed by Marko's own choice in settings, portrait or landscape (v5); lint is told so on purpose.
+    @SuppressLint("SourceLockedOrientationActivity")
+    private fun fixLayout(landscape: Boolean) {
+        requestedOrientation = if (landscape) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
 
     override fun onStart() { super.onStart(); engine.start() }
@@ -132,148 +180,246 @@ private fun openLatest(c: Context) {
 /** Where each valve is on the canvas, for drawing and for the finger. */
 private class Tab(val valve: Int, val rect: Rect, val upper: Boolean)
 
+private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp, letterSpacing = 1.5.sp)
+
 @Composable
 private fun ShrutiScreen(
-    mixer: Mixer, startTab: Int, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
+    mixer: Mixer, settings: Settings, startTab: Int, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
+    onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
     var key by remember { mutableIntStateOf(mixer.key) }
     var tab by remember { mutableIntStateOf(startTab.coerceIn(0, Presets.TABS.size - 1)) }
-    var frame by remember { mutableLongStateOf(0L) }
-    val tabs = remember { mutableStateListOf<Tab>() }
-    val measurer = rememberTextMeasurer()
-    val mono = TextStyle(fontFamily = FontFamily.Monospace, color = ANGEL, fontSize = 13.sp, letterSpacing = 1.5.sp)
+    // the card that was tapped, as tab and place: ten ragas share Sa Pa Sa', so the valves alone cannot say which
+    var chosen by remember { mutableStateOf<Pair<Int, Int>?>(null) }
+    var inSettings by remember { mutableStateOf(false) }
+    val pal = PALETTES[settings.palette]
 
-    // the glow breathes with the bellows: one redraw per frame while the app is on screen
-    LaunchedEffect(Unit) { while (isActive) withFrameNanos { frame = it } }
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
     fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now) }
-    fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+    fun choose(t: Int, i: Int) {
+        val p = Presets.TABS[t].presets[i]
+        val again = chosen == (t to i)
+        closeAll()
+        if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i }
+    }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
-    Column(
-        Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout)
-            .padding(horizontal = 10.dp, vertical = 12.dp)
-    ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            BasicText("SHRUTI", style = mono.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = 4.sp))
-            Spacer(Modifier.weight(1f))
-            BasicText(
-                "v${BuildConfig.VERSION_NAME}",
-                style = mono.copy(color = LINE, fontSize = 11.sp),
-                modifier = Modifier.clickable { onVersion() }.padding(start = 6.dp, top = 8.dp, bottom = 8.dp)
-            )
-        }
+    BackHandler(enabled = inSettings) { inSettings = false; onSettings() }
 
-        // the box, as on the reference page: 680 × 230 of its units, the valves drawn inside with room for their glow
-        Canvas(
-            Modifier.fillMaxWidth().aspectRatio(BOX_W / BOX_H).pointerInput(Unit) {
-                detectTapGestures { p ->
-                    // the upper valves lie over the top of the lower ones, so they are asked first, as they are drawn last
-                    val hit = tabs.sortedByDescending { it.upper }.firstOrNull { it.rect.contains(p) }
-                    if (hit != null) toggle(hit.valve)
-                }
-            }
-        ) {
-            if (frame < 0L) return@Canvas
-            val laid = layValves()
-            if (tabs.size != laid.size || tabs.zip(laid).any { (a, b) -> a.rect != b.rect }) { tabs.clear(); tabs.addAll(laid) }
-            val breath = ((mixer.breath() - 1.0) / Mixer.BELLOWS_DEPTH).toFloat()      // -1..1
-            val t = frame / 1e9
-            for (upper in listOf(false, true)) for (vt in laid.filter { it.upper == upper }) {
-                val on = open[vt.valve]
-                drawValve(vt, on, mixer.level(vt.valve).toFloat(), breath, t)
-                // the Western note over the Indian name, in the middle of the valve, as on the page
-                val ink = if (on) Color(0xFF05222E) else ANGEL
-                val size = if (vt.upper) 10.sp else 13.sp
-                val west = measurer.measure(Shruti.western(key, vt.valve), mono.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
-                val ind = measurer.measure(Shruti.NAMES[vt.valve], mono.copy(fontSize = size * 0.9f, letterSpacing = 0.sp, color = ink.copy(alpha = 0.7f)))
-                val r = vt.rect
-                val cy = if (vt.upper) r.top + r.height * 0.5f else r.top + r.height * 0.62f
-                val top = cy - (west.size.height + ind.size.height) / 2f
-                drawText(west, topLeft = Offset(r.center.x - west.size.width / 2f, top))
-                drawText(ind, topLeft = Offset(r.center.x - ind.size.width / 2f, top + west.size.height))
-            }
+    Box(Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout).padding(horizontal = 10.dp, vertical = 10.dp)) {
+        if (inSettings) {
+            SettingsScreen(settings, pal, onVersion) { inSettings = false; onSettings() }
+            return@Box
         }
-
-        // under the box, as on the page: Reset, the notes that sound, and what they make
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.height(40.dp)
-                    .background(BLACK, RoundedCornerShape(20.dp))
-                    .border(1.dp, if (anyOpen) ANGEL else FAINT, RoundedCornerShape(20.dp))
-                    .clickable(enabled = anyOpen) { closeAll() }
-                    .padding(horizontal = 18.dp),
-                contentAlignment = Alignment.Center
-            ) { BasicText("RESET", style = mono.copy(color = if (anyOpen) ANGEL else LINE, fontSize = 12.sp)) }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
-                BasicText(
-                    openValves.joinToString("  ") { "${Shruti.NAMES[it]} ${Shruti.western(key, it)}" }.ifEmpty { "—" },
-                    style = mono.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.85f))
-                )
-                val named = Shruti.detect(key, openValves)
-                if (named.isNotEmpty()) BasicText(named, style = mono.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = HALO, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
-            }
+        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames) { toggle(it) } }
+        val notes: @Composable () -> Unit = { if (settings.showNotes) NotesRow(openValves, key, pal, anyOpen) { closeAll() } }
+        val keys: @Composable () -> Unit = { if (settings.showKeys) KeyRow(key, pal) { key = it; mixer.key = it; onKey(it) } }
+        val presets: @Composable ColumnScope.() -> Unit = {
+            PresetPanel(tab, chosen, openValves, key, pal, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
         }
+        val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
 
-        // the page's five tabs of presets
-        Row(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Presets.TABS.forEachIndexed { i, pt ->
-                val on = i == tab
-                Box(
-                    Modifier.weight(1f).height(36.dp)
-                        .background(if (on) ANGEL else BLACK, RoundedCornerShape(18.dp))
-                        .border(1.dp, if (on) ANGEL else FAINT, RoundedCornerShape(18.dp))
-                        .clickable { tab = i; onTab(i) },
-                    contentAlignment = Alignment.Center
-                ) { BasicText(pt.title, style = mono.copy(color = if (on) BLACK else ANGEL.copy(alpha = 0.75f), fontSize = 10.sp, letterSpacing = 0.5.sp)) }
-            }
-        }
-
-        // its cards: a tap closes every valve and opens the preset's; a tap on the one that sounds closes it again
-        val current = Presets.TABS[tab]
-        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
-            BasicText(current.intro, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.5f)), modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
-            for (p in current.presets) {
-                val sounding = openValves == p.valves.sorted()
-                Column(
-                    Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                        .background(if (sounding) Color(0xFF0A2633) else BLACK, RoundedCornerShape(16.dp))
-                        .border(1.dp, if (sounding) ANGEL else FAINT, RoundedCornerShape(16.dp))
-                        .clickable {
-                            closeAll()
-                            if (!sounding) for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }
-                        }
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        BasicText(p.name, style = mono.copy(fontSize = 14.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold, color = if (sounding) CORE else ANGEL))
-                        Spacer(Modifier.weight(1f))
-                        BasicText(p.valves.sorted().joinToString(" ") { Shruti.western(key, it) }, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = HALO))
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            if (maxWidth > maxHeight) {
+                // landscape: the box, its notes and the keys on the left, the presets on the right
+                Row(Modifier.fillMaxSize()) {
+                    Column(Modifier.weight(1.15f).fillMaxHeight()) {
+                        Spacer(Modifier.weight(1f)); box(); notes(); Spacer(Modifier.weight(1f)); keys()
                     }
-                    if (p.level.isNotEmpty()) BasicText(p.level.uppercase(), style = mono.copy(fontSize = 9.sp, letterSpacing = 2.sp, color = ANGEL.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
-                    BasicText(p.about, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.75f)), modifier = Modifier.padding(top = 4.dp))
-                    BasicText(p.usedIn, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f).fillMaxHeight()) {
+                        Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
+                        if (settings.showPresets) presets() else Spacer(Modifier.weight(1f))
+                    }
+                }
+            } else {
+                Column(Modifier.fillMaxSize()) {
+                    Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
+                    if (!settings.showPresets) Spacer(Modifier.weight(1f))
+                    box(); notes()
+                    if (settings.showPresets) presets() else Spacer(Modifier.weight(1f))
+                    keys()
                 }
             }
         }
+    }
+}
 
-        Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Shruti.KEYS.forEachIndexed { i, name ->
-                val on = i == key
-                Box(
-                    Modifier.weight(1f).height(44.dp)
-                        .background(if (on) ANGEL else BLACK, RoundedCornerShape(22.dp))
-                        .border(1.dp, if (on) ANGEL else FAINT, RoundedCornerShape(22.dp))
-                        .clickable { key = i; mixer.key = i; onKey(i) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    BasicText(name, style = mono.copy(color = if (on) BLACK else ANGEL.copy(alpha = 0.75f), fontSize = 11.sp, letterSpacing = 0.sp))
-                }
+/** The settings button: a small gear drawn in the scheme's light, where "SHRUTI" and the version were. */
+@Composable
+private fun Gear(pal: Palette, onClick: () -> Unit) {
+    Box(Modifier.size(44.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(22.dp)) {
+            val c = center
+            val r = size.minDimension / 2f
+            for (i in 0 until 8) {
+                val a = i * PI / 4
+                drawLine(pal.light.copy(alpha = 0.8f), Offset(c.x + (r * 0.55f) * cos(a).toFloat(), c.y + (r * 0.55f) * sin(a).toFloat()),
+                    Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat()), strokeWidth = r * 0.28f, cap = StrokeCap.Round)
             }
+            drawCircle(pal.light.copy(alpha = 0.8f), r * 0.62f, c)
+            drawCircle(BLACK, r * 0.28f, c)
+        }
+    }
+}
+
+/** A row of pills, one lit: the scheme's light on black. Used for the presets' tabs, the keys and the settings. */
+@Composable
+private fun Pills(labels: List<String>, selected: Int, pal: Palette, height: Int = 44, fontSize: Int = 11, onPick: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        labels.forEachIndexed { i, name ->
+            val on = i == selected
+            Box(
+                Modifier.weight(1f).height(height.dp)
+                    .background(if (on) pal.light else BLACK, RoundedCornerShape((height / 2).dp))
+                    .border(1.dp, if (on) pal.light else pal.faint, RoundedCornerShape((height / 2).dp))
+                    .clickable { onPick(i) },
+                contentAlignment = Alignment.Center
+            ) { BasicText(name, style = MONO.copy(color = if (on) BLACK else pal.light.copy(alpha = 0.75f), fontSize = fontSize.sp, letterSpacing = 0.sp)) }
+        }
+    }
+}
+
+@Composable
+private fun KeyRow(key: Int, pal: Palette, onKey: (Int) -> Unit) {
+    Box(Modifier.padding(top = 10.dp)) { Pills(Shruti.KEYS, key, pal, onPick = onKey) }
+}
+
+/** Under the box, as on the reference page: Reset, the notes that sound, and what they make. */
+@Composable
+private fun NotesRow(openValves: List<Int>, key: Int, pal: Palette, anyOpen: Boolean, onReset: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier.height(40.dp)
+                .border(1.dp, if (anyOpen) pal.light else pal.faint, RoundedCornerShape(20.dp))
+                .clickable(enabled = anyOpen, onClick = onReset)
+                .padding(horizontal = 18.dp),
+            contentAlignment = Alignment.Center
+        ) { BasicText("RESET", style = MONO.copy(color = if (anyOpen) pal.light else pal.line, fontSize = 12.sp)) }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            BasicText(
+                openValves.joinToString("  ") { "${Shruti.NAMES[it]} ${Shruti.western(key, it)}" }.ifEmpty { "—" },
+                style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.85f))
+            )
+            val named = Shruti.detect(key, openValves)
+            if (named.isNotEmpty()) BasicText(named, style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = pal.halo, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
+        }
+    }
+}
+
+/** The page's five tabs of presets and their cards. A card lights while it is the chosen one and its valves sound. */
+@Composable
+private fun ColumnScope.PresetPanel(
+    tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, onTab: (Int) -> Unit, onChoose: (Int, Int) -> Unit
+) {
+    Box(Modifier.padding(top = 14.dp, bottom = 10.dp)) { Pills(Presets.TABS.map { it.title }, tab, pal, height = 36, fontSize = 10, onPick = onTab) }
+    val current = Presets.TABS[tab]
+    Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
+        BasicText(current.intro, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)), modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
+        current.presets.forEachIndexed { i, p ->
+            val sounding = chosen == (tab to i) && openValves == p.valves.sorted()
+            Column(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    .background(if (sounding) pal.cardOn else BLACK, RoundedCornerShape(16.dp))
+                    .border(1.dp, if (sounding) pal.light else pal.faint, RoundedCornerShape(16.dp))
+                    .clickable { onChoose(tab, i) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BasicText(p.name, style = MONO.copy(fontSize = 14.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold, color = if (sounding) pal.core else pal.light))
+                    Spacer(Modifier.weight(1f))
+                    BasicText(p.valves.sorted().joinToString(" ") { Shruti.western(key, it) }, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.halo))
+                }
+                if (p.level.isNotEmpty()) BasicText(p.level.uppercase(), style = MONO.copy(fontSize = 9.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
+                BasicText(p.about, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.75f)), modifier = Modifier.padding(top = 4.dp))
+                BasicText(p.usedIn, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
+            }
+        }
+    }
+}
+
+/** Settings (v5): the colour scheme, the layout, which parts show, and the version. Back or DONE returns. */
+@Composable
+private fun SettingsScreen(s: Settings, pal: Palette, onVersion: () -> Unit, onDone: () -> Unit) {
+    val head = MONO.copy(fontSize = 11.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.5f))
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            BasicText("SETTINGS", style = MONO.copy(fontSize = 14.sp, letterSpacing = 4.sp, fontWeight = FontWeight.Bold, color = pal.light))
+            Spacer(Modifier.weight(1f))
+            BasicText("DONE", style = MONO.copy(fontSize = 13.sp, color = pal.light), modifier = Modifier.clickable(onClick = onDone).padding(14.dp))
+        }
+        BasicText("COLOUR", style = head, modifier = Modifier.padding(top = 18.dp, bottom = 8.dp))
+        Pills(PALETTES.map { it.name }, s.palette, pal) { s.palette = it }
+        BasicText("LAYOUT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        Pills(listOf("PORTRAIT", "LANDSCAPE"), if (s.landscape) 1 else 0, pal) { s.landscape = it == 1 }
+        BasicText("SHOW", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        for ((label, on, set) in listOf<Triple<String, Boolean, (Boolean) -> Unit>>(
+            Triple("NAMES ON THE VALVES", s.showNames) { v: Boolean -> s.showNames = v },
+            Triple("RESET AND NOTES", s.showNotes) { v: Boolean -> s.showNotes = v },
+            Triple("PRESETS", s.showPresets) { v: Boolean -> s.showPresets = v },
+            Triple("KEYS", s.showKeys) { v: Boolean -> s.showKeys = v },
+        )) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp).border(1.dp, if (on) pal.light else pal.faint, RoundedCornerShape(22.dp))
+                    .clickable { set(!on) }.padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicText(label, style = MONO.copy(fontSize = 12.sp, letterSpacing = 1.sp, color = if (on) pal.light else pal.line))
+                Spacer(Modifier.weight(1f))
+                BasicText(if (on) "ON" else "OFF", style = MONO.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (on) pal.halo else pal.line))
+            }
+        }
+        BasicText("VERSION", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        BasicText(
+            "v${BuildConfig.VERSION_NAME}   latest release →",
+            style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = pal.light),
+            modifier = Modifier.clickable(onClick = onVersion).padding(vertical = 10.dp)
+        )
+    }
+}
+
+/** The box itself: the thirteen valves, drawn every frame so the glow breathes with the bellows. */
+@Composable
+private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, showNames: Boolean, onToggle: (Int) -> Unit) {
+    var frame by remember { mutableLongStateOf(0L) }
+    val tabs = remember { mutableStateListOf<Tab>() }
+    val measurer = rememberTextMeasurer()
+    LaunchedEffect(Unit) { while (isActive) withFrameNanos { frame = it } }
+
+    // the box, as on the reference page: 680 × 230 of its units, the valves drawn inside with room for their glow
+    Canvas(
+        Modifier.fillMaxWidth().aspectRatio(BOX_W / BOX_H).pointerInput(Unit) {
+            detectTapGestures { p ->
+                // the upper valves lie over the top of the lower ones, so they are asked first, as they are drawn last
+                val hit = tabs.sortedByDescending { it.upper }.firstOrNull { it.rect.contains(p) }
+                if (hit != null) onToggle(hit.valve)
+            }
+        }
+    ) {
+        if (frame < 0L) return@Canvas
+        val laid = layValves()
+        if (tabs.size != laid.size || tabs.zip(laid).any { (a, b) -> a.rect != b.rect }) { tabs.clear(); tabs.addAll(laid) }
+        val breath = ((mixer.breath() - 1.0) / Mixer.BELLOWS_DEPTH).toFloat()      // -1..1
+        val t = frame / 1e9
+        for (upper in listOf(false, true)) for (vt in laid.filter { it.upper == upper }) {
+            val on = open[vt.valve]
+            drawValve(vt, on, mixer.level(vt.valve).toFloat(), breath, t, pal)
+            if (!showNames) continue
+            // the Western note over the Indian name, in the middle of the valve, as on the page
+            val ink = if (on) pal.ink else pal.light
+            val size = if (vt.upper) 10.sp else 13.sp
+            val west = measurer.measure(Shruti.western(key, vt.valve), MONO.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
+            val ind = measurer.measure(Shruti.NAMES[vt.valve], MONO.copy(fontSize = size * 0.9f, letterSpacing = 0.sp, color = ink.copy(alpha = 0.7f)))
+            val r = vt.rect
+            val cy = if (vt.upper) r.top + r.height * 0.5f else r.top + r.height * 0.62f
+            val top = cy - (west.size.height + ind.size.height) / 2f
+            drawText(west, topLeft = Offset(r.center.x - west.size.width / 2f, top))
+            drawText(ind, topLeft = Offset(r.center.x - ind.size.width / 2f, top + west.size.height))
         }
     }
 }
@@ -295,16 +441,16 @@ private fun DrawScope.layValves(): List<Tab> {
     return tabs
 }
 
-/** A closed valve is a thin line of light; an open one burns light blue with a white heart and a halo that breathes. */
-private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, level: Float, breath: Float, t: Double) {
+/** A closed valve is a thin line of light; an open one burns in the scheme's light with a white heart and a halo that breathes. */
+private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, level: Float, breath: Float, t: Double, pal: Palette) {
     val r = tab.rect
     val radius = CornerRadius(minOf(r.width, r.height) * 0.22f)
     val edge = r.width * 0.035f
 
     // at rest: black (an upper valve hides what it lies over), a faint inner light and an outline
     drawRoundRect(BLACK, r.topLeft, r.size, radius)
-    drawRoundRect(Brush.verticalGradient(listOf(FAINT.copy(alpha = 0.7f), BLACK), r.top, r.bottom), r.topLeft, r.size, radius)
-    drawRoundRect(if (isOpen) ANGEL else LINE, r.topLeft, r.size, radius, style = Stroke(width = edge))
+    drawRoundRect(Brush.verticalGradient(listOf(pal.faint.copy(alpha = 0.7f), BLACK), r.top, r.bottom), r.topLeft, r.size, radius)
+    drawRoundRect(if (isOpen) pal.light else pal.line, r.topLeft, r.size, radius, style = Stroke(width = edge))
     if (level <= 0f) return
 
     // the halo: a real blur around the valve, wider and brighter as the bellows breathe in
@@ -313,13 +459,13 @@ private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, level: Float, breath:
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
         for ((spread, alpha) in listOf(0.45f to 0.55f, 0.2f to 0.8f)) {
             paint.maskFilter = BlurMaskFilter(r.width * spread * pulse, BlurMaskFilter.Blur.NORMAL)
-            paint.color = HALO.copy(alpha = alpha * level * pulse).toArgb()
+            paint.color = pal.halo.copy(alpha = alpha * level * pulse).toArgb()
             c.nativeCanvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius.x, radius.y, paint)
         }
     }
-    // the body: light blue, white towards the middle
+    // the body: the scheme's light, white towards the middle
     drawRoundRect(
-        Brush.horizontalGradient(listOf(ANGEL.copy(alpha = level), CORE.copy(alpha = level), ANGEL.copy(alpha = level)), r.left, r.right),
+        Brush.horizontalGradient(listOf(pal.light.copy(alpha = level), pal.core.copy(alpha = level), pal.light.copy(alpha = level)), r.left, r.right),
         r.topLeft, r.size, radius
     )
     // light rising through it, slowly, from below into the other world

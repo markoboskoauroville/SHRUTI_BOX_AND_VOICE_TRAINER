@@ -142,3 +142,13 @@
 7. The icon finished: Sa and Pa in the halo the screen throws, and a themed (monochrome) icon of its own, open valves
    filled and closed ones outlined, so Android 13+ no longer draws seven blobs.
 8. Everything of v7 gathered (the presets, AUTO, the icon, the marks, ▶ SCALE) and merged to main, released as v7.
+
+## v8 — requested 21.10.2026
+
+> Yes, the scale is already done. It's pushed to main. It's done. We need to build the new features, please. A new feature is arpeggio. When I click arpeggio, any preset chord will play as arpeggio, one note after the other. And then we need to also improve auto mode. When I press auto, you start from the beginning of scale to train my voice automatically. So you play the note for 3 seconds And then I sing it. If I hover inside the 20% of correction of the pitch, so middle note plus minus 20% for 2 seconds, you go to the next note. Please make it like this. And when I press out auto again, it stops, start from the beginning. I can jump if I don't like it start from the beginning. Once it starts to play, I can manually overwrite and just tell what is the new beginning, and then you start from that note.
+
+1. ARP: with it on, a preset plays as an arpeggio, its notes one after the other, round and round, instead of together.
+2. AUTO starts at once from the first note of the scale (the chosen raga's, or Sa Re Ga ma Pa Dha Ni Sa'): the note
+   plays 3 s, then the voice sings it; within ±20 % of the note for 2 s goes to the next.
+3. AUTO again stops it; the next AUTO starts from the beginning. While it runs, a tap on a valve makes that note the
+   new beginning and the walk goes on from there.

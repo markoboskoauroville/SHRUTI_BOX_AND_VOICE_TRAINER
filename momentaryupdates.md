@@ -12,3 +12,12 @@
    failures; signed with the permanent PKCS12 key, SHA-256 92:BC:8F:89…), release v1 `1-shrutibox-v1.apk` (729 KB).
    Tried on the Pixel 7 emulator in portrait: the box draws, Sa and Pa open, glow and sound (one float track at 48 kHz,
    underruns flat after the start), KEY moves to D, OFF closes all. Waiting for Marko's ear and thumb.
+
+## v2 — requested 21.10.2026 (with a web page for the layout: reference-v2-layout.html)
+
+> Please fix the user interface from Shruti Box. It needs to fill up the whole screen, so it works only in portrait mode, and it should have a very simple technical design with curves in a dark mode. It should not emulate the actual design of Shruti Box. Only the placement of the buttons stays the same. The action stays the same as well, opening the valves, but it should use the whole area of the screen efficiently, with a very minimalistic design. The background will be black, and the valves will be light blue and glowing. Please make them glow so that they look like they are coming from another dimension, from the reality of angels.
+
+1. No more wooden box: the whole portrait screen is the instrument, black ground, a simple technical design with curves.
+2. The placement stays: eight natural valves along the bottom (Sa Re Ga Ma Pa Dha Ni Sa'), the five between them above
+   (re ga Ma dha ni), as in the reference page. The action stays: a tap opens a valve, a tap again closes it.
+3. The valves light blue and glowing, a soft light from another dimension, the reality of angels.

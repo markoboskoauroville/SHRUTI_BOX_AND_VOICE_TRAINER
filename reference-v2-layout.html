@@ -1,0 +1,1345 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Shruti Box</title>
+    <style>
+        :root {
+            --background-color: #f5f5f5;
+            --text-color: #333;
+            --shruti-box-bg: #f5f5dc;
+            --shruti-box-border: #8b4513;
+            --valve-active-bg: #d9c09e;
+            --sharp-valve-bg: #e6d9bc;
+            --sharp-valve-active-bg: #c9bc9c;
+            --instructions-bg: #f0e6d2;
+            --info-section-bg: white;
+            --reset-button-bg: #e57373;
+            --reset-button-hover-bg: #ef5350;
+            --detection-display-bg: #dcedc8;
+            --tab-bg: #f5f5f5;
+            --tab-active-bg: white;
+            --tab-border: #ddd;
+            --tab-shortcut-bg: #e0e0e0;
+            --tab-shortcut-text: #666;
+            --drone-card-bg: #f9f9f9;
+            --drone-card-hover-bg: #f0e6d2;
+            --drone-card-border: #8b4513;
+            --raga-card-bg: #f0e6f5;
+            --raga-card-hover-bg: #e1bee7;
+            --raga-card-border: #9c27b0;
+            --chord-card-bg: #e3f2fd;
+            --chord-card-hover-bg: #bbdefb;
+            --chord-card-border: #2196f3;
+            --concept-detection-bg: #e3f2fd;
+            --concept-detection-text: #1565c0;
+            --beginner-bg: #d4edda;
+            --beginner-text: #155724;
+            --intermediate-bg: #fff3cd;
+            --intermediate-text: #856404;
+            --advanced-bg: #f8d7da;
+            --advanced-text: #721c24;
+        }
+
+        [data-theme="dark"] {
+            --background-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --shruti-box-bg: #3c2f2f;
+            --shruti-box-border: #8b4513;
+            --valve-active-bg: #5e4b3e;
+            --sharp-valve-bg: #4a3c2f;
+            --sharp-valve-active-bg: #6b584b;
+            --instructions-bg: #2f2f2f;
+            --info-section-bg: #2a2a2a;
+            --reset-button-bg: #b71c1c;
+            --reset-button-hover-bg: #d32f2f;
+            --detection-display-bg: #388e3c;
+            --tab-bg: #2f2f2f;
+            --tab-active-bg: #3c3c3c;
+            --tab-border: #555;
+            --tab-shortcut-bg: #555;
+            --tab-shortcut-text: #ccc;
+            --drone-card-bg: #333;
+            --drone-card-hover-bg: #4a3c2f;
+            --drone-card-border: #8b4513;
+            --raga-card-bg: #3c2f4a;
+            --raga-card-hover-bg: #5e3c6b;
+            --raga-card-border: #9c27b0;
+            --chord-card-bg: #2f3c4a;
+            --chord-card-hover-bg: #3c5e8b;
+            --chord-card-border: #2196f3;
+            --concept-detection-bg: #2f3c4a;
+            --concept-detection-text: #90caf9;
+            --beginner-bg: #2e7d32;
+            --beginner-text: #d4edda;
+            --intermediate-bg: #ffb300;
+            --intermediate-text: #fff3cd;
+            --advanced-bg: #d81b60;
+            --advanced-text: #f8d7da;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: var(--text-color);
+            text-align: center;
+        }
+        
+        .shruti-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 30px;
+            width: 100%;
+            max-width: 1000px;
+            position: relative;
+        }
+        
+        .shruti-box {
+            position: relative;
+            padding: 25px 15px 15px;
+            height: 220px;
+            width: 80%;
+            margin: 0 auto;
+        }
+        
+        .valve {
+            background-color: var(--shruti-box-bg);
+            border: 2px solid var(--shruti-box-border);
+            border-radius: 8px;
+            cursor: pointer;
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: var(--text-color);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            flex-direction: column;
+        }
+        
+        .natural-valve {
+            width: 70px;
+            height: 150px;
+            bottom: 10px;
+            z-index: 1;
+        }
+        
+        .sharp-valve {
+            width: 40px;
+            height: 100px;
+            background-color: var(--sharp-valve-bg);
+            top: 15px;
+            z-index: 2;
+        }
+        
+        .valve .western {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .valve .indian {
+            font-size: 14px;
+            color: var(--tab-shortcut-text);
+        }
+        
+        .valve.active {
+            background-color: var(--valve-active-bg);
+            transform: translateY(4px);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        .sharp-valve.active {
+            background-color: var(--sharp-valve-active-bg);
+        }
+        
+        .instructions {
+            margin-bottom: 20px;
+            text-align: center;
+            padding: 10px;
+            background-color: var(--instructions-bg);
+            border-radius: 5px;
+            max-width: 1000px;
+            width: 100%;
+        }
+        
+        .info-section {
+            background-color: var(--info-section-bg);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-top: 20px;
+            max-width: 1000px;
+            line-height: 1.6;
+            width: 100%;
+        }
+        
+        .key-labels {
+            position: absolute;
+            bottom: -30px;
+            text-align: center;
+            width: 100%;
+            font-size: 12px;
+            color: var(--text-color);
+        }
+        
+        .controls-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            width: 100%;
+            gap: 20px;
+        }
+        
+        .reset-button {
+            padding: 8px 15px;
+            background-color: var(--reset-button-bg);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        
+        .reset-button:hover {
+            background-color: var(--reset-button-hover-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .reset-button:active {
+            transform: translateY(0);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background-color: var(--reset-button-bg);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        
+        .theme-toggle-button:hover {
+            background-color: var(--reset-button-hover-bg);
+            transform: scale(1.1);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .theme-toggle-button:active {
+            transform: scale(1);
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        
+        .detection-display {
+            padding: 8px 15px;
+            background-color: var(--detection-display-bg);
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 300px;
+            text-align: center;
+        }
+        
+        .tabs-container {
+            margin-top: 30px;
+            width: 100%;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--tab-border);
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: var(--tab-bg);
+            border: 1px solid var(--tab-border);
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+        }
+        
+        .tab.active {
+            background-color: var(--tab-active-bg);
+            border-bottom: 1px solid var(--tab-active-bg);
+            margin-bottom: -1px;
+            font-weight: bold;
+        }
+        
+        .tab-shortcut {
+            position: absolute;
+            top: 2px;
+            right: 5px;
+            font-size: 10px;
+            color: var(--tab-shortcut-text);
+            background-color: var(--tab-shortcut-bg);
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid var(--tab-border);
+            border-top: none;
+            background-color: var(--info-section-bg);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .tabs-keyboard-shortcuts {
+            text-align: center;
+            margin: 5px 0 15px;
+            color: var(--tab-shortcut-text);
+            font-size: 14px;
+            background-color: var(--tab-bg);
+            padding: 5px;
+            border-radius: 5px;
+            width: 100%;
+        }
+        
+        .drone-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .drone-card {
+            background-color: var(--drone-card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--drone-card-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .drone-card:hover {
+            background-color: var(--drone-card-hover-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .drone-card h3 {
+            margin-top: 0;
+            color: var(--drone-card-border);
+            text-align: left;
+        }
+        
+        .drone-card .difficulty {
+            font-size: 12px;
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .beginner {
+            background-color: var(--beginner-bg);
+            color: var(--beginner-text);
+        }
+        
+        .intermediate {
+            background-color: var(--intermediate-bg);
+            color: var(--intermediate-text);
+        }
+        
+        .advanced {
+            background-color: var(--advanced-bg);
+            color: var(--advanced-text);
+        }
+        
+        .raga-card {
+            background-color: var(--raga-card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--raga-card-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .raga-card:hover {
+            background-color: var(--raga-card-hover-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .raga-card h3 {
+            margin-top: 0;
+            color: var(--raga-card-border);
+            text-align: left;
+        }
+        
+        .raga-description {
+            margin-top: 5px;
+            color: var(--tab-shortcut-text);
+        }
+        
+        .raga-notes {
+            font-style: italic;
+            color: var(--tab-shortcut-text);
+            margin-top: 8px;
+        }
+        
+        .chord-card {
+            background-color: var(--chord-card-bg);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--chord-card-border);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .chord-card:hover {
+            background-color: var(--chord-card-hover-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .chord-card h3 {
+            margin-top: 0;
+            color: var(--chord-card-border);
+            text-align: left;
+        }
+        
+        .chord-description {
+            margin-top: 5px;
+            color: var(--tab-shortcut-text);
+        }
+        
+        .chord-notes {
+            font-style: italic;
+            color: var(--tab-shortcut-text);
+            margin-top: 8px;
+        }
+        
+        .concept-detection {
+            padding: 8px 15px;
+            background-color: var(--concept-detection-bg);
+            border-radius: 5px;
+            font-weight: bold;
+            min-width: 200px;
+            text-align: center;
+            color: var(--concept-detection-text);
+        }
+    </style>
+</head>
+<body data-theme="light">
+    <button id="theme-toggle-button" class="theme-toggle-button" title="Toggle Dark/Light Mode">☾</button>
+    <h1>Virtual Shruti Box</h1>
+    
+    <div class="instructions">
+        Click on the valves to activate different drone notes. Use your mouse or keyboard keys (a-l and w-y).<br>
+        Press number keys 1-5 to switch between drone combination tabs. Use 't' key to toggle dark/light mode (sun/moon icon at top right).
+    </div>
+    
+    <div class="shruti-container">
+        <div class="shruti-box">
+            <!-- Natural Notes (Sa, Re, Ga, Ma, Pa, Dha, Ni, Sa') -->
+            <div class="valve natural-valve" data-note="C" data-key="a" style="left: 15px;">
+                <span class="western">C</span>
+                <span class="indian">Sa</span>
+            </div>
+            <div class="valve natural-valve" data-note="D" data-key="s" style="left: 95px;">
+                <span class="western">D</span>
+                <span class="indian">Re</span>
+            </div>
+            <div class="valve natural-valve" data-note="E" data-key="d" style="left: 175px;">
+                <span class="western">E</span>
+                <span class="indian">Ga</span>
+            </div>
+            <div class="valve natural-valve" data-note="F" data-key="f" style="left: 255px;">
+                <span class="western">F</span>
+                <span class="indian">Ma</span>
+            </div>
+            <div class="valve natural-valve" data-note="G" data-key="g" style="left: 335px;">
+                <span class="western">G</span>
+                <span class="indian">Pa</span>
+            </div>
+            <div class="valve natural-valve" data-note="A" data-key="h" style="left: 415px;">
+                <span class="western">A</span>
+                <span class="indian">Dha</span>
+            </div>
+            <div class="valve natural-valve" data-note="B" data-key="j" style="left: 495px;">
+                <span class="western">B</span>
+                <span class="indian">Ni</span>
+            </div>
+            <div class="valve natural-valve" data-note="C2" data-key="k" style="left: 575px;">
+                <span class="western">C</span>
+                <span class="indian">Sa'</span>
+            </div>
+            
+            <!-- Sharp/Flat Notes -->
+            <div class="valve sharp-valve" data-note="C#" data-key="w" style="left: 65px;">
+                <span class="western">C#</span>
+                <span class="indian">re</span>
+            </div>
+            <div class="valve sharp-valve" data-note="D#" data-key="e" style="left: 145px;">
+                <span class="western">D#</span>
+                <span class="indian">ga</span>
+            </div>
+            <div class="valve sharp-valve" data-note="F#" data-key="r" style="left: 305px;">
+                <span class="western">F#</span>
+                <span class="indian">Ma'</span>
+            </div>
+            <div class="valve sharp-valve" data-note="G#" data-key="y" style="left: 385px;">
+                <span class="western">G#</span>
+                <span class="indian">dha</span>
+            </div>
+            <div class="valve sharp-valve" data-note="A#" data-key="u" style="left: 465px;">
+                <span class="western">A#</span>
+                <span class="indian">ni</span>
+            </div>
+            
+            <div class="key-labels">
+                Keyboard shortcuts: A S D F G H J K (natural notes) | W E R Y U (sharp/flat notes)
+            </div>
+        </div>
+        
+        <div class="controls-row">
+            <button id="reset-button" class="reset-button">Reset</button>
+            <div id="keys-display" class="detection-display">Current Notes: </div>
+            <div id="concept-display" class="concept-detection"></div>
+        </div>
+    </div>
+    
+    <div class="info-section">
+        <div class="tabs-keyboard-shortcuts">
+            Keyboard Shortcuts: Press <strong>1</strong> for Basic Drones, <strong>2</strong> for Intermediate, <strong>3</strong> for Advanced, <strong>4</strong> for Ragas, <strong>5</strong> for Western Chords, <strong>t</strong> for Dark/Light Mode
+        </div>
+        
+        <div class="tabs-container">
+            <div class="tabs">
+                <div class="tab active" data-tab="basic-tab">
+                    Basic Drones
+                    <span class="tab-shortcut">1</span>
+                </div>
+                <div class="tab" data-tab="intermediate-tab">
+                    Intermediate Drones
+                    <span class="tab-shortcut">2</span>
+                </div>
+                <div class="tab" data-tab="advanced-tab">
+                    Advanced Drones
+                    <span class="tab-shortcut">3</span>
+                </div>
+                <div class="tab" data-tab="ragas-tab">
+                    Ragas
+                    <span class="tab-shortcut">4</span>
+                </div>
+                <div class="tab" data-tab="chords-tab">
+                    Western Chords
+                    <span class="tab-shortcut">5</span>
+                </div>
+            </div>
+            
+            <!-- Basic Drones Tab -->
+            <div id="basic-tab" class="tab-content active">
+                <h2>Basic Drone Combinations</h2>
+                <p>These are the foundational drone combinations used in Indian classical music. Click on any combination to activate it on the shruti box. Note: Some combinations (e.g., Sa-Ga) are non-standard and included for educational purposes.</p>
+                
+                <div class="drone-grid">
+                    <div class="drone-card" data-notes="C,G">
+                        <h3>Sa-Pa (C-G)</h3>
+                        <span class="difficulty beginner">Beginner</span>
+                        <p>The most basic and widely used drone combination. Creates a perfect fifth interval.</p>
+                        <p>Used in: Most ragas, classical, folk, and devotional music.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,F">
+                        <h3>Sa-Ma (C-F)</h3>
+                        <span class="difficulty beginner">Beginner</span>
+                        <p>Creates a perfect fourth interval. Stable and grounding.</p>
+                        <p>Used in: Ragas where Ma is prominent, like Bageshri, Malkauns.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,C2">
+                        <h3>Sa-Sa' (C-C)</h3>
+                        <span class="difficulty beginner">Beginner</span>
+                        <p>Octave drone. Simple but effective for vocal practice.</p>
+                        <p>Used in: Beginning vocal exercises, simple melodies.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,G,C2">
+                        <h3>Sa-Pa-Sa' (C-G-C)</h3>
+                        <span class="difficulty beginner">Beginner</span>
+                        <p>The most common traditional combination. Creates stability and fullness.</p>
+                        <p>Used in: Most classical performances, standard tanpura tuning.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,E">
+                        <h3>Sa-Ga (C-E)</h3>
+                        <span class="difficulty beginner">Beginner</span>
+                        <p>Creates a major third interval. Bright and uplifting. Note: Non-standard for traditional drones.</p>
+                        <p>Used in: Experimental or light classical music with major tonality.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Intermediate Drones Tab -->
+            <div id="intermediate-tab" class="tab-content">
+                <h2>Intermediate Drone Combinations</h2>
+                <p>These combinations add more color and complexity to the drone texture. Some are non-standard and included for educational purposes.</p>
+                
+                <div class="drone-grid">
+                    <div class="drone-card" data-notes="C,F,G">
+                        <h3>Sa-Ma-Pa (C-F-G)</h3>
+                        <span class="difficulty intermediate">Intermediate</span>
+                        <p>Adds richness to the drone. Both perfect fourth and fifth intervals.</p>
+                        <p>Used in: Ragas with prominent Ma like Bageshri, Malkauns.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,F#,G">
+                        <h3>Sa-Ma'-Pa (C-F#-G)</h3>
+                        <span class="difficulty intermediate">Intermediate</span>
+                        <p>Used specifically for ragas with Tivra (sharp) Ma.</p>
+                        <p>Used in: Ragas like Yaman, Puriya, Marwa.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,B,C2">
+                        <h3>Sa-Ni-Sa' (C-B-C)</h3>
+                        <span class="difficulty intermediate">Intermediate</span>
+                        <p>Creates tension and resolution with the leading tone Ni. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or ragas with strong Ni like Yaman.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,A#,C2">
+                        <h3>Sa-ni-Sa' (C-A#-C)</h3>
+                        <span class="difficulty intermediate">Intermediate</span>
+                        <p>For ragas with komal (flat) Ni. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or ragas like Bhairavi.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,D#,G">
+                        <h3>Sa-ga-Pa (C-D#-G)</h3>
+                        <span class="difficulty intermediate">Intermediate</span>
+                        <p>Adds a minor third for a more melancholic sound. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or ragas with komal Ga like Bhairavi.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,G,E">
+                        <h3>Sa-Pa-Ga (C-G-E)</h3>
+                        <span class="difficulty intermediate">Intermediate</span>
+                        <p>Adds a major third for brighter tonality. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or ragas with prominent major character.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Advanced Drones Tab -->
+            <div id="advanced-tab" class="tab-content">
+                <h2>Advanced Drone Combinations</h2>
+                <p>These complex drone combinations create specific moods and are used for specialized ragas. Many are non-standard and included for educational purposes.</p>
+                
+                <div class="drone-grid">
+                    <div class="drone-card" data-notes="C,G,A#,C2">
+                        <h3>Sa-Pa-ni-Sa' (C-G-A#-C)</h3>
+                        <span class="difficulty advanced">Advanced</span>
+                        <p>Rich combination with perfect fifth and minor seventh. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or complex ragas from Bhairavi family.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,C#,G">
+                        <h3>Sa-re-Pa (C-C#-G)</h3>
+                        <span class="difficulty advanced">Advanced</span>
+                        <p>Creates tension with the minor second (komal Re). Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or ragas like Shree.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,G,A,C2">
+                        <h3>Sa-Pa-Dha-Sa' (C-G-A-C)</h3>
+                        <span class="difficulty advanced">Advanced</span>
+                        <p>Adds major sixth for a richer texture. Note: Non-standard.</p>
+                        <p>Used in: Experimental light classical forms.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,D#,F,A#">
+                        <h3>Sa-ga-Ma-ni (C-D#-F-A#)</h3>
+                        <span class="difficulty advanced">Advanced</span>
+                        <p>Highly specialized drone for specific moods. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or Bhairavi family ragas.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,D,G,B">
+                        <h3>Sa-Re-Pa-Ni (C-D-G-B)</h3>
+                        <span class="difficulty advanced">Advanced</span>
+                        <p>Create a bright, complex sound with natural Re and Ni. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or Kalyan family ragas.</p>
+                    </div>
+                    
+                    <div class="drone-card" data-notes="C,F#,A,C2">
+                        <h3>Sa-Ma'-Dha-Sa' (C-F#-A-C)</h3>
+                        <span class="difficulty advanced">Advanced</span>
+                        <p>Creates a characteristic lydian sound with sharp Ma. Note: Non-standard.</p>
+                        <p>Used in: Experimental settings or ragas like Puriya, Marwa.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ragas Tab -->
+            <div id="ragas-tab" class="tab-content">
+                <h2>Raga-Specific Drone Combinations</h2>
+                <p>These combinations are tailored for popular ragas in Indian classical music. Click on any raga to activate its standard drone combination.</p>
+                
+                <div class="drone-grid">
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Yaman</h3>
+                        <p class="raga-description">An evening raga conveying a mood of devotion and peace.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Kalyan</h3>
+                        <p class="raga-description">A majestic evening raga with a bright character.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Bhairav</h3>
+                        <p class="raga-description">Early morning raga evoking serenity and devotion.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Bhairavi</h3>
+                        <p class="raga-description">Morning raga expressing profound emotions.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Darbari</h3>
+                        <p class="raga-description">Late night raga with deep, serene mood.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Bhimpalasi</h3>
+                        <p class="raga-description">Afternoon raga with a romantic mood.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Puriya</h3>
+                        <p class="raga-description">Evening raga with a tense, dramatic character.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Bihag</h3>
+                        <p class="raga-description">Night raga with a romantic, joyful mood.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,F,C2">
+                        <h3>Raga Bageshri</h3>
+                        <p class="raga-description">Late night raga expressing yearning.</p>
+                        <p class="raga-notes">Drone: Sa-Ma-Sa' (C-F-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Shree</h3>
+                        <p class="raga-description">Sunset raga creating a profound serene mood.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,G,C2">
+                        <h3>Raga Durga</h3>
+                        <p class="raga-description">Evening raga with a brave, powerful character.</p>
+                        <p class="raga-notes">Drone: Sa-Pa-Sa' (C-G-C)</p>
+                    </div>
+                    
+                    <div class="raga-card" data-notes="C,F,C2">
+                        <h3>Raga Malkauns</h3>
+                        <p class="raga-description">Late night raga with a profound, intense mood.</p>
+                        <p class="raga-notes">Drone: Sa-Ma-Sa' (C-F-C)</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Western Chords Tab -->
+            <div id="chords-tab" class="tab-content">
+                <h2>Western Chord Combinations</h2>
+                <p>Create familiar Western chord drones using the shruti box. Click on any chord to activate it.</p>
+                
+                <div class="drone-grid">
+                    <div class="chord-card" data-notes="C,E,G">
+                        <h3>C Major</h3>
+                        <p class="chord-description">The most basic major chord, bright and happy.</p>
+                        <p class="chord-notes">Notes: C-E-G (Sa-Ga-Pa)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="C,D#,G">
+                        <h3>C Minor</h3>
+                        <p class="chord-description">Sad, melancholic character with minor third.</p>
+                        <p class="chord-notes">Notes: C-Eb-G (Sa-ga-Pa)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="G,B,D">
+                        <h3>G Major</h3>
+                        <p class="chord-description">Dominant chord in the key of C, creates tension.</p>
+                        <p class="chord-notes">Notes: G-B-D (Pa-Ni-Re)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="F,A,C">
+                        <h3>F Major</h3>
+                        <p class="chord-description">Subdominant chord in the key of C, warm sound.</p>
+                        <p class="chord-notes">Notes: F-A-C (Ma-Dha-Sa)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="A,C,E">
+                        <h3>A Minor</h3>
+                        <p class="chord-description">Relative minor of C major. Wistful quality.</p>
+                        <p class="chord-notes">Notes: A-C-E (Dha-Sa'-Ga)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="D,F,A">
+                        <h3>D Minor</h3>
+                        <p class="chord-description">Used in many melancholic progressions.</p>
+                        <p class="chord-notes">Notes: D-F-A (Re-Ma-Dha)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="C,F,G">
+                        <h3>C Suspended 4th</h3>
+                        <p class="chord-description">Ambiguous, neither major nor minor. Conveys tension.</p>
+                        <p class="chord-notes">Notes: C-F-G (Sa-Ma-Pa)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="G,C,D">
+                        <h3>G Suspended 4th</h3>
+                        <p class="chord-description">Open sound, common in folk music.</p>
+                        <p class="chord-notes">Notes: G-C-D (Pa-Sa'-Re)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="C,D,G">
+                        <h3>C Suspended 2nd</h3>
+                        <p class="chord-description">Bright and open. Has an unresolved quality.</p>
+                        <p class="chord-notes">Notes: C-D-G (Sa-Re-Pa)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="C,E,G,B">
+                        <h3>C Major 7th</h3>
+                        <p class="chord-description">Jazzy, sophisticated sound with the 7th degree.</p>
+                        <p class="chord-notes">Notes: C-E-G-B (Sa-Ga-Pa-Ni)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="C,D#,G,A#">
+                        <h3>C Minor 7th</h3>
+                        <p class="chord-description">Mellow, used in jazz and R&B.</p>
+                        <p class="chord-notes">Notes: C-Eb-G-Bb (Sa-ga-Pa-ni)</p>
+                    </div>
+                    
+                    <div class="chord-card" data-notes="G,B,D,F">
+                        <h3>G Dominant 7th</h3>
+                        <p class="chord-description">Creates tension, naturally resolves to C.</p>
+                        <p class="chord-notes">Notes: G-B-D-F (Pa-Ni-Re-Ma)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create audio context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioContext = new AudioContext();
+            
+            // Master gain node
+            const masterGainNode = audioContext.createGain();
+            masterGainNode.gain.value = 0.5;
+            masterGainNode.connect(audioContext.destination);
+            
+            // Get all valves
+            const valves = document.querySelectorAll('.valve');
+            const keysDisplay = document.getElementById('keys-display');
+            const conceptDisplay = document.getElementById('concept-display');
+            const resetButton = document.getElementById('reset-button');
+            const themeToggleButton = document.getElementById('theme-toggle-button');
+            
+            // Store active oscillators
+            const activeOscillators = {};
+            
+            // Define ragas for detection
+            const ragas = [
+                { name: "Raga Yaman", notes: ["C", "G", "C2"] },
+                { name: "Raga Kalyan", notes: ["C", "G", "C2"] },
+                { name: "Raga Bhairav", notes: ["C", "G", "C2"] },
+                { name: "Raga Bhairavi", notes: ["C", "G", "C2"] },
+                { name: "Raga Darbari", notes: ["C", "G", "C2"] },
+                { name: "Raga Bhimpalasi", notes: ["C", "G", "C2"] },
+                { name: "Raga Puriya", notes: ["C", "G", "C2"] },
+                { name: "Raga Bihag", notes: ["C", "G", "C2"] },
+                { name: "Raga Bageshri", notes: ["C", "F", "C2"] },
+                { name: "Raga Shree", notes: ["C", "G", "C2"] },
+                { name: "Raga Durga", notes: ["C", "G", "C2"] },
+                { name: "Raga Malkauns", notes: ["C", "F", "C2"] }
+            ];
+            
+            // Define Western chords for detection
+            const westernChords = [
+                { name: "C Major", notes: ["C", "E", "G"] },
+                { name: "C Minor", notes: ["C", "D#", "G"] },
+                { name: "F Major", notes: ["F", "A", "C"] },
+                { name: "G Major", notes: ["G", "B", "D"] },
+                { name: "A Minor", notes: ["A", "C", "E"] },
+                { name: "D Minor", notes: ["D", "F", "A"] },
+                { name: "C Major 7th", notes: ["C", "E", "G", "B"] },
+                { name: "C Minor 7th", notes: ["C", "D#", "G", "A#"] },
+                { name: "G Dominant 7th", notes: ["G", "B", "D", "F"] },
+                { name: "C sus4", notes: ["C", "F", "G"] },
+                { name: "G sus4", notes: ["G", "C", "D"] },
+                { name: "C sus2", notes: ["C", "D", "G"] }
+            ];
+            
+            // Note frequencies
+            const noteFrequencies = {
+                'C': 130.81, // C3
+                'C#': 138.59, // C#3
+                'D': 146.83, // D3
+                'D#': 155.56, // D#3
+                'E': 164.81, // E3
+                'F': 174.61, // F3
+                'F#': 185.00, // F#3
+                'G': 196.00, // G3
+                'G#': 207.65, // G#3
+                'A': 220.00, // A3
+                'A#': 233.08, // A#3
+                'B': 246.94, // B3
+                'C2': 261.63 // C4
+            };
+            
+            // Note name mappings for display
+            const noteNameMappings = {
+                'C': { indian: 'Sa', western: 'C' },
+                'C#': { indian: 're', western: 'C#' },
+                'D': { indian: 'Re', western: 'D' },
+                'D#': { indian: 'ga', western: 'D#' },
+                'E': { indian: 'Ga', western: 'E' },
+                'F': { indian: 'Ma', western: 'F' },
+                'F#': { indian: 'Ma\'', western: 'F#' },
+                'G': { indian: 'Pa', western: 'G' },
+                'G#': { indian: 'dha', western: 'G#' },
+                'A': { indian: 'Dha', western: 'A' },
+                'A#': { indian: 'ni', western: 'A#' },
+                'B': { indian: 'Ni', western: 'B' },
+                'C2': { indian: 'Sa\'', western: 'C' }
+            };
+            
+            // Function to get currently active notes
+            function getActiveNotes() {
+                const activeNotes = [];
+                valves.forEach(valve => {
+                    if (valve.classList.contains('active')) {
+                        activeNotes.push(valve.getAttribute('data-note'));
+                    }
+                });
+                return activeNotes;
+            }
+            
+            // Function to update the key display
+            function updateKeyDisplay() {
+                const activeNotes = getActiveNotes();
+                if (activeNotes.length === 0) {
+                    keysDisplay.textContent = "Current Notes: ";
+                    conceptDisplay.textContent = "";
+                    return;
+                }
+                
+                // Sort the active notes to ensure consistent display
+                activeNotes.sort();
+                
+                // Format the key display with Indian notation first, then Western in parentheses
+                const formattedNotes = activeNotes.map(note => {
+                    const mapping = noteNameMappings[note];
+                    return `${mapping.indian} (${mapping.western})`;
+                }).join(", ");
+                
+                keysDisplay.textContent = `Current Notes: ${formattedNotes}`;
+                
+                // Check if current combination matches a musical concept
+                checkForMatchingConcept(activeNotes);
+            }
+            
+            // Function to check if active notes match a raga, chord, or other musical concept
+            function checkForMatchingConcept(activeNotes) {
+                if (activeNotes.length === 0) {
+                    conceptDisplay.textContent = "";
+                    return;
+                }
+                
+                // Sort the active notes to ensure consistent comparison
+                const sortedActiveNotes = [...activeNotes].sort();
+                
+                // Check for ragas
+                for (const raga of ragas) {
+                    const sortedRagaNotes = [...raga.notes].sort();
+                    if (arraysEqual(sortedActiveNotes, sortedRagaNotes)) {
+                        conceptDisplay.textContent = `Detected: ${raga.name}`;
+                        return;
+                    }
+                }
+                
+                // Check for Western chords
+                for (const chord of westernChords) {
+                    const sortedChordNotes = [...chord.notes].sort();
+                    if (arraysEqual(sortedActiveNotes, sortedChordNotes)) {
+                        conceptDisplay.textContent = `Detected: ${chord.name} Chord`;
+                        return;
+                    }
+                }
+                
+                // Check for specific note combinations
+                if (arraysEqual(sortedActiveNotes, ["C", "G"].sort())) {
+                    conceptDisplay.textContent = "Detected: Perfect Fifth";
+                    return;
+                }
+                
+                if (arraysEqual(sortedActiveNotes, ["C", "F"].sort())) {
+                    conceptDisplay.textContent = "Detected: Perfect Fourth";
+                    return;
+                }
+                
+                if (arraysEqual(sortedActiveNotes, ["C", "E"].sort())) {
+                    conceptDisplay.textContent = "Detected: Major Third";
+                    return;
+                }
+                
+                if (arraysEqual(sortedActiveNotes, ["C", "D#"].sort())) {
+                    conceptDisplay.textContent = "Detected: Minor Third";
+                    return;
+                }
+                
+                // No specific match found
+                conceptDisplay.textContent = "";
+            }
+            
+            // Helper function to compare arrays
+            function arraysEqual(a, b) {
+                if (a.length !== b.length) return false;
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) return false;
+                }
+                return true;
+            }
+            
+            // Function to create a drone sound
+            function createDrone(note) {
+                if (activeOscillators[note]) {
+                    return; // Already playing
+                }
+                
+                // Create oscillators for rich sound (fundamental + harmonics)
+                const oscillators = [];
+                const gainNodes = [];
+                const filterNodes = [];
+                
+                // Create fundamental oscillator
+                const mainOsc = audioContext.createOscillator();
+                mainOsc.type = 'sine';
+                mainOsc.frequency.value = noteFrequencies[note];
+                
+                const mainGain = audioContext.createGain();
+                mainGain.gain.value = 0.5;
+                
+                // Create filter for tone control
+                const mainFilter = audioContext.createBiquadFilter();
+                mainFilter.type = 'lowpass';
+                mainFilter.frequency.value = 2000; // Default frequency
+                
+                mainOsc.connect(mainFilter);
+                mainFilter.connect(mainGain);
+                mainGain.connect(masterGainNode);
+                
+                oscillators.push(mainOsc);
+                gainNodes.push(mainGain);
+                filterNodes.push(mainFilter);
+                
+                // Add first harmonic (one octave higher)
+                const harmonic1Osc = audioContext.createOscillator();
+                harmonic1Osc.type = 'sine';
+                harmonic1Osc.frequency.value = noteFrequencies[note] * 2;
+                
+                const harmonic1Gain = audioContext.createGain();
+                harmonic1Gain.gain.value = 0.15;
+                
+                const harmonic1Filter = audioContext.createBiquadFilter();
+                harmonic1Filter.type = 'lowpass';
+                harmonic1Filter.frequency.value = 2000;
+                
+                harmonic1Osc.connect(harmonic1Filter);
+                harmonic1Filter.connect(harmonic1Gain);
+                harmonic1Gain.connect(masterGainNode);
+                
+                oscillators.push(harmonic1Osc);
+                gainNodes.push(harmonic1Gain);
+                filterNodes.push(harmonic1Filter);
+                
+                // Add second harmonic (perfect fifth above the first harmonic)
+                const harmonic2Osc = audioContext.createOscillator();
+                harmonic2Osc.type = 'sine';
+                harmonic2Osc.frequency.value = noteFrequencies[note] * 3; // Perfect fifth above octave
+                
+                const harmonic2Gain = audioContext.createGain();
+                harmonic2Gain.gain.value = 0.1;
+                
+                const harmonic2Filter = audioContext.createBiquadFilter();
+                harmonic2Filter.type = 'lowpass';
+                harmonic2Filter.frequency.value = 2000;
+                
+                harmonic2Osc.connect(harmonic2Filter);
+                harmonic2Filter.connect(harmonic2Gain);
+                harmonic2Gain.connect(masterGainNode);
+                
+                oscillators.push(harmonic2Osc);
+                gainNodes.push(harmonic2Gain);
+                filterNodes.push(harmonic2Filter);
+                
+                // Start oscillators
+                oscillators.forEach(osc => osc.start());
+                
+                // Store oscillators and gain nodes
+                activeOscillators[note] = {
+                    oscillators: oscillators,
+                    gainNodes: gainNodes,
+                    filterNodes: filterNodes
+                };
+            }
+            
+            // Function to stop a drone
+            function stopDrone(note) {
+                if (activeOscillators[note]) {
+                    // Create a gentle release
+                    const releaseTime = 0.5; 
+                    
+                    activeOscillators[note].gainNodes.forEach(gain => {
+                        gain.gain.setValueAtTime(gain.gain.value, audioContext.currentTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + releaseTime);
+                    });
+                    
+                    // Schedule oscillator stop
+                    setTimeout(() => {
+                        if (activeOscillators[note]) {
+                            activeOscillators[note].oscillators.forEach(osc => osc.stop());
+                            activeOscillators[note].gainNodes.forEach(gain => gain.disconnect());
+                            activeOscillators[note].filterNodes.forEach(filter => filter.disconnect());
+                            delete activeOscillators[note];
+                        }
+                    }, releaseTime * 1000);
+                }
+            }
+            
+            // Function to reset all valves
+            function resetAllValves() {
+                valves.forEach(valve => {
+                    valve.classList.remove('active');
+                    const note = valve.getAttribute('data-note');
+                    stopDrone(note);
+                });
+                updateKeyDisplay();
+            }
+            
+            // Reset button event
+            resetButton.addEventListener('click', resetAllValves);
+            
+            // Theme toggle button event
+            themeToggleButton.addEventListener('click', () => {
+                const currentTheme = document.body.getAttribute('data-theme');
+                if (currentTheme === 'light') {
+                    document.body.setAttribute('data-theme', 'dark');
+                    themeToggleButton.innerHTML = '☀';
+                } else {
+                    document.body.setAttribute('data-theme', 'light');
+                    themeToggleButton.innerHTML = '☾';
+                }
+            });
+            
+            // Function to activate a drone combination
+            function activateDroneCombination(notes) {
+                // First reset all valves
+                resetAllValves();
+                
+                // Then activate the specified notes
+                setTimeout(() => {
+                    notes.forEach(note => {
+                        const valve = document.querySelector(`[data-note="${note}"]`);
+                        if (valve) {
+                            valve.classList.add('active');
+                            createDrone(note);
+                        }
+                    });
+                    
+                    // Update displays
+                    updateKeyDisplay();
+                }, 100); // Small delay to ensure reset completes
+            }
+            
+            // Click events for valves
+            valves.forEach(valve => {
+                valve.addEventListener('click', () => {
+                    const note = valve.getAttribute('data-note');
+                    
+                    if (valve.classList.contains('active')) {
+                        // Turn off
+                        valve.classList.remove('active');
+                        stopDrone(note);
+                    } else {
+                        // Turn on
+                        valve.classList.add('active');
+                        createDrone(note);
+                    }
+                    
+                    // Update displays
+                    updateKeyDisplay();
+                });
+            });
+            
+            // Keyboard events
+            document.addEventListener('keydown', (e) => {
+                if (e.repeat) return; // Prevent key repeat
+                
+                const key = e.key.toLowerCase();
+                
+                // Theme toggle shortcut
+                if (key === 't') {
+                    const currentTheme = document.body.getAttribute('data-theme');
+                    if (currentTheme === 'light') {
+                        document.body.setAttribute('data-theme', 'dark');
+                        themeToggleButton.innerHTML = '☀';
+                    } else {
+                        document.body.setAttribute('data-theme', 'light');
+                        themeToggleButton.innerHTML = '☾';
+                    }
+                    return;
+                }
+                
+                // Tab switching shortcuts
+                if (key === '1') switchTab('basic-tab');
+                if (key === '2') switchTab('intermediate-tab');
+                if (key === '3') switchTab('advanced-tab');
+                if (key === '4') switchTab('ragas-tab');
+                if (key === '5') switchTab('chords-tab');
+                
+                const valve = document.querySelector(`[data-key="${key}"]`);
+                
+                if (valve) {
+                    const note = valve.getAttribute('data-note');
+                    
+                    if (valve.classList.contains('active')) {
+                        // Turn off
+                        valve.classList.remove('active');
+                        stopDrone(note);
+                    } else {
+                        // Turn on
+                        valve.classList.add('active');
+                        createDrone(note);
+                    }
+                    
+                    // Update displays
+                    updateKeyDisplay();
+                }
+            });
+            
+            // Click events for drone cards
+            const droneCards = document.querySelectorAll('.drone-card, .raga-card, .chord-card');
+            droneCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const notes = card.getAttribute('data-notes').split(',');
+                    activateDroneCombination(notes);
+                });
+            });
+            
+            // Tab switching functionality
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            function switchTab(tabId) {
+                // Remove active class from all tabs and contents
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                const tab = document.querySelector(`[data-tab="${tabId}"]`);
+                if (tab) {
+                    tab.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                }
+            }
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchTab(tab.getAttribute('data-tab'));
+                });
+            });
+            
+            // Initialize displays
+            updateKeyDisplay();
+        });
+    </script>
+</body>
+</html>

@@ -279,9 +279,11 @@ private fun ShrutiScreen(
     }
     fun closeAll() { scaleRun = null; arpRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     /** ARP on or off; a card that sounds changes at once between its chord and its arpeggio. */
+    // read the chosen card at the moment of the tap, not as it was when the button was composed
+    fun liveChosen(): Preset? = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }
     fun toggleArp() {
         arp = !arp
-        val p = chosenPreset ?: return
+        val p = liveChosen() ?: return
         val sounding = arpRun != null || openValves() == p.valves.sorted()
         if (!sounding || scaleRun != null || run != null) return
         if (arp) { val a = ArpRun(p.valves); arpRun = a; sound(listOf(a.note)) } else { arpRun = null; sound(p.valves) }
@@ -333,7 +335,7 @@ private fun ShrutiScreen(
                     // AUTO starts at once from the beginning of the scale; AUTO again stops it (v8)
                     auto = !auto
                     if (!auto) { run = null; autoDone = false; hushAll(); armed = false }
-                    else startAuto((chosenPreset?.scale?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR).min())
+                    else startAuto((liveChosen()?.scale?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR).min())
                 }) {
                 // VOICE stops the shruti at once: the microphone must hear the singer, never the box
                 if (!armed || !micGranted) { hushAll(); chosen = null }

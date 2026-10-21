@@ -35,3 +35,7 @@
 2. Each valve shows its Western note and its Indian name, as on the page; under the box the Reset button, the current
    notes and what they make (an interval or a chord), as on the page.
 3. The v2 colours stay: black ground, light-blue glowing valves.
+   **Status:** done, v3 (21.10.2026). GitHub Actions green (Test 1: 27 cases, 0 failures), release v3
+   `3-shrutibox-v3.apk`. On the Pixel 7 emulator: the box as on the page in the v2 colours, valves 70 × 140 and 40 × 100
+   in the page's units, Western note over Indian name; Sa Ga Pa in D glowed and read "D major", dha over Pa opened and
+   closed (the upper valves win where they overlap), RESET closed all, no crash. Waiting for Marko on the phone.

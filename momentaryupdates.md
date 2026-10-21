@@ -73,3 +73,14 @@
    notes, presets and keys, Back to leave; force-stop and restart kept every setting; Home stops the sound thread,
    coming back starts it; no crash, no ANR. One fix from the test: landscape with the presets hidden left half the
    screen empty, now the box is centred and fills the height (build 14, tried again). Then merged to main and released.
+
+## v6 — requested 21.10.2026
+
+> add a new feature to this app, which is a voice trainer. It's very simple: you need to play the shruti, stop the shruti, and then the microphone becomes active. Then you need to repeat the sound, and the application gives you how much percentage you are off plus or minus. It's the same scale you can see on different tuning devices or software. So we're going to have small oval buttons in the middle when it's the exact pitch, and then these LEDs are going left or right depending on your error, and the middle one is of course the last button pressed. A voice trainer. Add this to the app
+
+1. A voice trainer: play the shruti (a valve), stop it, and the microphone opens; sing the note back.
+2. The error shown plus or minus in percent, as on a tuner: a percent of a semitone, so ±50 % is half a semitone
+   (the cent of a tuner). Any octave counts: a man and a woman sing the same note an octave apart.
+3. A row of small oval LEDs: the middle one is the exact pitch and carries the name of the last valve pressed; flat
+   lights to the left, sharp to the right.
+4. The microphone only while the trainer is on and every valve is closed and silent, so it never hears the shruti.

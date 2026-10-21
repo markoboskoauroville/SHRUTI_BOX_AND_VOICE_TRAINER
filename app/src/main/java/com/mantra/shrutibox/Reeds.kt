@@ -25,6 +25,34 @@ object Shruti {
 
     /** The lower row of the reed plate holds the seven notes of the scale and the upper Sa; the upper row the five between. */
     fun isUpperRow(valve: Int): Boolean = valve in setOf(1, 3, 6, 8, 10)
+
+    /** The Western name of valve [valve] in key [key]: Sa in D is D. */
+    fun western(key: Int, valve: Int): String = KEYS[(key.coerceIn(0, 11) + valve) % 12]
+
+    private val INTERVALS = mapOf(
+        listOf(0, 7) to "Perfect fifth", listOf(0, 5) to "Perfect fourth", listOf(0, 12) to "Octave",
+        listOf(0, 4) to "Major third", listOf(0, 3) to "Minor third", listOf(0, 7, 12) to "Sa Pa Sa'", listOf(0, 5, 12) to "Sa Ma Sa'"
+    )
+    private val CHORDS = listOf(
+        setOf(0, 4, 7) to " major", setOf(0, 3, 7) to " minor", setOf(0, 5, 7) to "sus4", setOf(0, 2, 7) to "sus2",
+        setOf(0, 4, 7, 11) to "maj7", setOf(0, 3, 7, 10) to "m7", setOf(0, 4, 7, 10) to "7"
+    )
+
+    /**
+     * What the open valves make, as the reference page shows it: an interval from Sa, or a chord named in the key
+     * (the lowest open valve tried first as its root). Empty when they make nothing with a name.
+     */
+    fun detect(key: Int, valves: Collection<Int>): String {
+        val v = valves.filter { it in 0 until COUNT }.distinct().sorted()
+        if (v.isEmpty()) return ""
+        INTERVALS[v]?.let { return it }
+        val pcs = v.map { it % 12 }.toSet()
+        for (root in v.map { it % 12 }.distinct()) {
+            val shape = pcs.map { (it - root + 12) % 12 }.toSet()
+            CHORDS.firstOrNull { it.first == shape }?.let { return western(key, root) + it.second }
+        }
+        return ""
+    }
 }
 
 /** One cycle of a free reed: rich, bright, the odd harmonics a little stronger, normalised to a peak of 1. */

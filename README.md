@@ -1,6 +1,6 @@
 # Mantra Shruti Box
 
-A shruti box for Android. Since v2 (21.10.2026) it is no longer a picture of a wooden box: the whole portrait screen is
+A shruti box for Android. Since v3 the valves are laid out as on Marko's reference page (`reference-v2-layout.html`): eight of about 2:1 along the bottom, the five above them over the gaps, each showing its Western note and Indian name, with Reset, the sounding notes and the interval or chord they make under the box. Since v2 (21.10.2026) it is no longer a picture of a wooden box: the whole portrait screen is
 the instrument, black, with thirteen light-blue capsules placed as on a shruti box's reed plate (the eight of the scale
 along the bottom, the five between them above, `reference-v2-layout.html`). **Tap a valve and its reed sounds; tap it
 again and it closes.** An open valve glows: a blurred halo that breathes with the bellows, a white heart, light rising

@@ -21,11 +21,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
@@ -141,6 +143,7 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
     fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now) }
+    val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
     Column(
         Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout)
@@ -150,49 +153,67 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
             BasicText("SHRUTI", style = mono.copy(fontWeight = FontWeight.Bold, fontSize = 14.sp, letterSpacing = 4.sp))
             Spacer(Modifier.weight(1f))
             BasicText(
-                "OFF",
-                style = mono.copy(color = if (anyOpen) ANGEL else LINE),
-                modifier = Modifier.clickable(enabled = anyOpen) {
-                    mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false
-                }.padding(horizontal = 14.dp, vertical = 8.dp)
-            )
-            BasicText(
                 "v${BuildConfig.VERSION_NAME}",
                 style = mono.copy(color = LINE, fontSize = 11.sp),
                 modifier = Modifier.clickable { onVersion() }.padding(start = 6.dp, top = 8.dp, bottom = 8.dp)
             )
         }
 
-        Box(Modifier.fillMaxWidth().weight(1f).padding(vertical = 10.dp)) {
-            Canvas(
-                Modifier.fillMaxSize().pointerInput(Unit) {
-                    detectTapGestures { p ->
-                        // the valve under the finger, or the nearest one if the finger lands in a gap
-                        val hit = tabs.firstOrNull { it.rect.contains(p) }
-                            ?: tabs.minByOrNull { (it.rect.center - p).getDistanceSquared() }
-                                ?.takeIf { t -> Rect(t.rect.left - t.rect.width * 0.3f, t.rect.top - 40f, t.rect.right + t.rect.width * 0.3f, t.rect.bottom + 40f).contains(p) }
-                        if (hit != null) toggle(hit.valve)
-                    }
-                }
-            ) {
-                if (frame < 0L) return@Canvas
-                val laid = layValves()
-                if (tabs.size != laid.size || tabs.zip(laid).any { (a, b) -> a.rect != b.rect }) { tabs.clear(); tabs.addAll(laid) }
-                val breath = ((mixer.breath() - 1.0) / Mixer.BELLOWS_DEPTH).toFloat()      // -1..1
-                val t = frame / 1e9
-                for (tab in laid) drawValve(tab, open[tab.valve], mixer.level(tab.valve).toFloat(), breath, t)
-                for (tab in laid) {
-                    val on = open[tab.valve]
-                    val label = measurer.measure(
-                        Shruti.NAMES[tab.valve],
-                        mono.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = if (on) Color(0xFF05222E) else ANGEL.copy(alpha = 0.7f), fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
-                    )
-                    val r = tab.rect
-                    val y = if (tab.upper) r.top + r.width * 0.45f else r.bottom - r.width * 0.45f - label.size.height
-                    drawText(label, topLeft = Offset(r.center.x - label.size.width / 2f, y))
+        Spacer(Modifier.weight(1f))
+
+        // the box, as on the reference page: 640 × 230 of its units, the valves drawn inside with room for their glow
+        Canvas(
+            Modifier.fillMaxWidth().aspectRatio(BOX_W / BOX_H).pointerInput(Unit) {
+                detectTapGestures { p ->
+                    // the upper valves lie over the top of the lower ones, so they are asked first, as they are drawn last
+                    val hit = tabs.sortedByDescending { it.upper }.firstOrNull { it.rect.contains(p) }
+                    if (hit != null) toggle(hit.valve)
                 }
             }
+        ) {
+            if (frame < 0L) return@Canvas
+            val laid = layValves()
+            if (tabs.size != laid.size || tabs.zip(laid).any { (a, b) -> a.rect != b.rect }) { tabs.clear(); tabs.addAll(laid) }
+            val breath = ((mixer.breath() - 1.0) / Mixer.BELLOWS_DEPTH).toFloat()      // -1..1
+            val t = frame / 1e9
+            for (upper in listOf(false, true)) for (tab in laid.filter { it.upper == upper }) {
+                val on = open[tab.valve]
+                drawValve(tab, on, mixer.level(tab.valve).toFloat(), breath, t)
+                // the Western note over the Indian name, in the middle of the valve, as on the page
+                val ink = if (on) Color(0xFF05222E) else ANGEL
+                val size = if (tab.upper) 10.sp else 13.sp
+                val west = measurer.measure(Shruti.western(key, tab.valve), mono.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
+                val ind = measurer.measure(Shruti.NAMES[tab.valve], mono.copy(fontSize = size * 0.9f, letterSpacing = 0.sp, color = ink.copy(alpha = 0.7f)))
+                val r = tab.rect
+                val cy = if (tab.upper) r.top + r.height * 0.5f else r.top + r.height * 0.62f
+                val top = cy - (west.size.height + ind.size.height) / 2f
+                drawText(west, topLeft = Offset(r.center.x - west.size.width / 2f, top))
+                drawText(ind, topLeft = Offset(r.center.x - ind.size.width / 2f, top + west.size.height))
+            }
         }
+
+        // under the box, as on the page: Reset, the notes that sound, and what they make
+        Row(Modifier.fillMaxWidth().padding(top = 18.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.height(40.dp)
+                    .background(BLACK, RoundedCornerShape(20.dp))
+                    .border(1.dp, if (anyOpen) ANGEL else FAINT, RoundedCornerShape(20.dp))
+                    .clickable(enabled = anyOpen) { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false }
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center
+            ) { BasicText("RESET", style = mono.copy(color = if (anyOpen) ANGEL else LINE, fontSize = 12.sp)) }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                BasicText(
+                    openValves.joinToString("  ") { "${Shruti.NAMES[it]} ${Shruti.western(key, it)}" }.ifEmpty { "—" },
+                    style = mono.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.85f))
+                )
+                val named = Shruti.detect(key, openValves)
+                if (named.isNotEmpty()) BasicText(named, style = mono.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = HALO, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
+            }
+        }
+
+        Spacer(Modifier.weight(1f))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Shruti.KEYS.forEachIndexed { i, name ->
@@ -211,48 +232,43 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
     }
 }
 
-/**
- * The placement of a shruti box's reed plate, kept from v1 and from the reference page: the eight of the scale along
- * the bottom, the five between them above, each centred on the gap of the two it lies between. Now they fill the
- * screen: the lower ones tall capsules from the bottom, the upper ones from the top.
- */
+// The reference page's box (reference-v2-layout.html), in its own pixels: eight valves 70 wide every 80, 140 tall
+// (Marko's 2:1); five 40 × 100 over the gaps between them, their lower part over the top of the eight. A margin of
+// 20 all round leaves room for the glow.
+private const val BOX_W = 680f
+private const val BOX_H = 230f
+
+/** Where the thirteen valves are, in the page's placement, scaled to the canvas. */
 private fun DrawScope.layValves(): List<Tab> {
-    val w = size.width
-    val h = size.height
-    val slot = w / 8f
-    val lowerW = slot * 0.80f
-    val upperW = slot * 0.64f
-    val gap = h * 0.035f
-    val upperH = h * 0.38f
-    val lowerTop = upperH + gap
+    val u = size.width / BOX_W
     val lower = listOf(0, 2, 4, 5, 7, 9, 11, 12)
     val upperAfter = mapOf(1 to 0, 3 to 1, 6 to 3, 8 to 4, 10 to 5)                  // valve to the lower slot it follows
     val tabs = ArrayList<Tab>(Shruti.COUNT)
-    lower.forEachIndexed { i, v -> tabs += Tab(v, Rect(Offset(slot * i + (slot - lowerW) / 2f, lowerTop), Size(lowerW, h - lowerTop)), false) }
-    upperAfter.forEach { (v, after) -> tabs += Tab(v, Rect(Offset(slot * (after + 1) - upperW / 2f, 0f), Size(upperW, upperH)), true) }
+    lower.forEachIndexed { i, v -> tabs += Tab(v, Rect(Offset((20f + 80f * i + 5f) * u, 70f * u), Size(70f * u, 140f * u)), false) }
+    upperAfter.forEach { (v, after) -> tabs += Tab(v, Rect(Offset((20f + 80f * (after + 1) - 20f) * u, 20f * u), Size(40f * u, 100f * u)), true) }
     return tabs
 }
 
 /** A closed valve is a thin line of light; an open one burns light blue with a white heart and a halo that breathes. */
 private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, level: Float, breath: Float, t: Double) {
     val r = tab.rect
-    val radius = CornerRadius(r.width / 2f)
+    val radius = CornerRadius(minOf(r.width, r.height) * 0.22f)
     val edge = r.width * 0.035f
 
-    // at rest: a faint inner light and an outline, so the hand knows where the valve is
-    drawRoundRect(Brush.verticalGradient(listOf(FAINT.copy(alpha = 0.55f), BLACK), r.top, r.bottom), r.topLeft, r.size, radius)
-    drawRoundRect(LINE, r.topLeft, r.size, radius, style = Stroke(width = edge))
+    // at rest: black (an upper valve hides what it lies over), a faint inner light and an outline
+    drawRoundRect(BLACK, r.topLeft, r.size, radius)
+    drawRoundRect(Brush.verticalGradient(listOf(FAINT.copy(alpha = 0.7f), BLACK), r.top, r.bottom), r.topLeft, r.size, radius)
+    drawRoundRect(if (isOpen) ANGEL else LINE, r.topLeft, r.size, radius, style = Stroke(width = edge))
     if (level <= 0f) return
 
     // the halo: a real blur around the valve, wider and brighter as the bellows breathe in
     val pulse = 0.82f + 0.18f * breath
     drawIntoCanvas { c ->
         val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
-        for ((spread, alpha) in listOf(0.55f to 0.55f, 0.25f to 0.8f)) {
-            val blur = r.width * spread * pulse
-            paint.maskFilter = BlurMaskFilter(blur, BlurMaskFilter.Blur.NORMAL)
+        for ((spread, alpha) in listOf(0.45f to 0.55f, 0.2f to 0.8f)) {
+            paint.maskFilter = BlurMaskFilter(r.width * spread * pulse, BlurMaskFilter.Blur.NORMAL)
             paint.color = HALO.copy(alpha = alpha * level * pulse).toArgb()
-            c.nativeCanvas.drawRoundRect(r.left, r.top, r.right, r.bottom, r.width / 2f, r.width / 2f, paint)
+            c.nativeCanvas.drawRoundRect(r.left, r.top, r.right, r.bottom, radius.x, radius.y, paint)
         }
     }
     // the body: light blue, white towards the middle

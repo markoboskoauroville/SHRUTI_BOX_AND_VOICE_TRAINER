@@ -27,6 +27,14 @@ class ReedsTest {
     @Test fun fiveUpperValves() = assertEquals(5, (0 until 13).count { Shruti.isUpperRow(it) })
     @Test fun saAndPaOnTheLowerRow() { assertFalse(Shruti.isUpperRow(0)); assertFalse(Shruti.isUpperRow(7)); assertFalse(Shruti.isUpperRow(12)) }
 
+    @Test fun westernFollowsTheKey() { assertEquals("D", Shruti.western(2, 0)); assertEquals("A", Shruti.western(2, 7)); assertEquals("C", Shruti.western(0, 12)) }
+    @Test fun detectsNothingWhenClosed() = assertEquals("", Shruti.detect(0, emptyList()))
+    @Test fun detectsTheFifth() = assertEquals("Perfect fifth", Shruti.detect(0, listOf(7, 0)))
+    @Test fun detectsAMajorChordInTheKey() = assertEquals("D major", Shruti.detect(2, listOf(0, 4, 7)))
+    @Test fun detectsAMinorChordOnPa() = assertEquals("E minor", Shruti.detect(0, listOf(4, 7, 11)))
+    @Test fun detectsTheSeventh() = assertEquals("C7", Shruti.detect(0, listOf(0, 4, 7, 10)))
+    @Test fun unnamedIsEmpty() = assertEquals("", Shruti.detect(0, listOf(0, 1, 2)))
+
     @Test fun waveIsNormalised() {
         val p = Wave.table.maxOf { abs(it) }
         assertEquals(1f, p, 1e-4f)

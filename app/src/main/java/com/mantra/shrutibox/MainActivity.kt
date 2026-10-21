@@ -194,6 +194,9 @@ private fun openLatest(c: Context) {
     }
 }
 
+/** The tuner's last reading, handed from the trainer to the auto walk without a recomposition per frame. */
+private class Readout { var percent: Double? = null }
+
 /** Where each valve is on the canvas, for drawing and for the finger. */
 private class Tab(val valve: Int, val rect: Rect, val upper: Boolean)
 
@@ -213,17 +216,47 @@ private fun ShrutiScreen(
     // the voice trainer: the last valve opened is the note to sing back; armed is its switch
     var target by remember { mutableStateOf<Int?>(null) }
     var armed by remember { mutableStateOf(false) }
+    // auto voice (v7): AUTO on, a tap on a valve walks up the scale, note played 4 s, then sung back
+    var auto by remember { mutableStateOf(false) }
+    var run by remember { mutableStateOf<AutoRun?>(null) }
+    var step by remember { mutableIntStateOf(0) }
+    var autoDone by remember { mutableStateOf(false) }
+    val readout = remember { Readout() }
     val pal = PALETTES[settings.palette]
 
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
+    fun hushAll() { mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun autoPlay(r: AutoRun) { hushAll(); open[r.note] = true; mixer.setOpen(r.note, true); target = r.note; armed = false }
+    fun startAuto(v: Int) {
+        if (!micGranted) askMic()
+        // the chosen raga's notes, or Sa Re Ga ma Pa Dha Ni when no raga is chosen
+        val scale = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i)?.scale }?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR
+        val r = AutoRun(AutoRun.from(v, scale)); run = r; autoDone = false; step++; autoPlay(r)
+    }
+    LaunchedEffect(Unit) {
+        while (isActive) withFrameNanos { now ->
+            val r = run
+            if (r != null && r.tick(now / 1e9, readout.percent)) {
+                when (r.phase) {
+                    AutoRun.Phase.PLAY -> autoPlay(r)
+                    AutoRun.Phase.SING -> { hushAll(); target = r.note; readout.percent = null; armed = true }
+                    AutoRun.Phase.DONE -> { armed = false; run = null; autoDone = true }
+                }
+                step++
+            }
+        }
+    }
+
     // the shruti and the voice take turns (Marko, v6): opening a valve or a preset switches VOICE off
-    fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false } }
+    fun toggle(v: Int) {
+        if (auto) { startAuto(v); return } val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false } }
     fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     fun choose(t: Int, i: Int) {
         val p = Presets.TABS[t].presets[i]
         val again = chosen == (t to i)
+        run = null
         closeAll()
         if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i; target = p.valves.min(); armed = false }
     }
@@ -245,8 +278,17 @@ private fun ShrutiScreen(
             PresetPanel(tab, chosen, openValves, key, pal, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
         }
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
+        val autoStatus = if (!auto) null else run?.let { r ->
+            val n = "${Shruti.NAMES[r.note]} ${Shruti.western(key, r.note)}"
+            "${r.index + 1}/${r.notes.size} " + (if (r.phase == AutoRun.Phase.PLAY) "listen $n" else "sing $n")
+        } ?: if (autoDone) "scale complete · tap a note" else "tap a note to begin"
+        if (step < 0) Unit                                          // step only makes the status recompose
         val trainer: @Composable () -> Unit = {
-            if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted) {
+            if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted, auto, autoStatus, readout,
+                onAuto = {
+                    auto = !auto
+                    if (!auto) { run = null; autoDone = false; hushAll(); armed = false } else if (!micGranted) askMic()
+                }) {
                 // VOICE stops the shruti at once: the microphone must hear the singer, never the box
                 if (!armed || !micGranted) { mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
                 if (!micGranted) { askMic(); armed = true } else armed = !armed
@@ -432,7 +474,10 @@ private fun SettingsScreen(s: Settings, pal: Palette, onVersion: () -> Unit, onD
  * flat lights to the left, sharp to the right, each LED ten percent of a semitone; the number says how far, ±.
  */
 @Composable
-private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette, armed: Boolean, onArm: () -> Unit) {
+private fun Trainer(
+    mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette, armed: Boolean, auto: Boolean, autoStatus: String?,
+    readout: Readout, onAuto: () -> Unit, onArm: () -> Unit
+) {
     val live by rememberUpdatedState(armed && target != null)
     val goal by rememberUpdatedState(target?.let { Shruti.freq(key, it) })
     var listening by remember { mutableStateOf(false) }
@@ -462,6 +507,7 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
             }
             // the last reading stays for a moment after the voice stops, then the row goes dark
             if (percent != null && now - shownAt > 600_000_000L) percent = null
+            readout.percent = if (listening) percent else null
         }
     }
     DisposableEffect(Unit) { onDispose { ear.listen(false) } }
@@ -475,10 +521,19 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
                 .background(if (armed) pal.light else BLACK, RoundedCornerShape(20.dp))
                 .border(1.dp, if (armed) pal.light else pal.faint, RoundedCornerShape(20.dp))
                 .clickable(onClick = onArm)
-                .padding(horizontal = 18.dp),
+                .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center
         ) { BasicText("VOICE", style = MONO.copy(color = if (armed) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 12.sp)) }
-        Spacer(Modifier.width(14.dp))
+        Spacer(Modifier.width(6.dp))
+        Box(
+            Modifier.height(40.dp)
+                .background(if (auto) pal.light else BLACK, RoundedCornerShape(20.dp))
+                .border(1.dp, if (auto) pal.light else pal.faint, RoundedCornerShape(20.dp))
+                .clickable(onClick = onAuto)
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.Center
+        ) { BasicText("AUTO", style = MONO.copy(color = if (auto) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 12.sp)) }
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             Canvas(Modifier.fillMaxWidth().height(22.dp)) {
                 val n = Pitch.SIDE * 2 + 1
@@ -503,7 +558,9 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
                     }
                 }
             }
+            val reading = p?.let { (if (it > 0.5) "+" else if (it < -0.5) "−" else "") + "${abs(it).roundToInt()} %" }
             val words = when {
+                autoStatus != null -> autoStatus + (reading?.let { "   $it" } ?: "")
                 !armed -> label
                 target == null -> "play a note"
                 !listening -> "close the shruti, then sing $label"

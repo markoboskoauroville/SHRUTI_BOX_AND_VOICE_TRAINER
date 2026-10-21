@@ -112,6 +112,26 @@ class ReedsTest {
     }
     @Test fun namesTheNoteHeard() { assertEquals("A", Pitch.note(440.0)); assertEquals("C", Pitch.note(65.41)); assertEquals("F#", Pitch.note(185.0)) }
 
+    // auto voice (v7): the walk, with a clock of its own
+    @Test fun autoWalksTheScaleFromTheTappedNote() = assertEquals(listOf(4, 5, 7, 9, 11, 12), AutoRun.from(4, AutoRun.MAJOR))
+    @Test fun autoFromANoteOutsideTheScale() = assertEquals(listOf(1, 2, 4, 5, 7, 9, 11, 12), AutoRun.from(1, AutoRun.MAJOR))
+    @Test fun autoFollowsARaga() = assertEquals(listOf(0, 3, 5, 8, 10, 12), AutoRun.from(0, listOf(0, 3, 5, 8, 10)))
+    @Test fun autoPlaysFourSecondsThenListens() {
+        val r = AutoRun(listOf(0, 2))
+        assertFalse(r.tick(0.0, null)); assertFalse(r.tick(3.9, null)); assertEquals(AutoRun.Phase.PLAY, r.phase)
+        assertTrue(r.tick(4.0, null)); assertEquals(AutoRun.Phase.SING, r.phase)
+    }
+    @Test fun autoMovesOnOnlyWhenTheVoiceHoldsTheNote() {
+        val r = AutoRun(listOf(0, 2)); r.tick(0.0, null); r.tick(4.0, null)
+        assertFalse(r.tick(4.1, 40.0)); assertFalse(r.tick(4.2, 5.0)); assertFalse(r.tick(4.4, 50.0))   // off, on, off again
+        assertFalse(r.tick(4.5, -8.0)); assertTrue(r.tick(4.8, 3.0))                                      // held 0.3 s
+        assertEquals(AutoRun.Phase.PLAY, r.phase); assertEquals(2, r.note)
+    }
+    @Test fun autoEndsAtTheTop() {
+        val r = AutoRun(listOf(12)); r.tick(0.0, null); r.tick(4.0, null); r.tick(4.1, 0.0); r.tick(4.5, 0.0)
+        assertEquals(AutoRun.Phase.DONE, r.phase)
+    }
+
     @Test fun waveIsNormalised() {
         val p = Wave.table.maxOf { abs(it) }
         assertEquals(1f, p, 1e-4f)

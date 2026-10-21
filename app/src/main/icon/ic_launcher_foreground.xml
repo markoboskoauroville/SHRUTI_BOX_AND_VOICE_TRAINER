@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Mantra Shruti Box, the icon. THIS IS A TEMPLATE: app/build.gradle.kts writes the real icon into
+     build/generated/versionIcon with the version drawn under the box (version-visible.md). The box as in Marko's
+     photo: blue bellows behind, a teak front, the dark reed plate with its two rows of pale tabs; inside the
+     42-unit symbol box (app-icon.md), lifted so the number fits under it.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- the back board and the bellows cloth -->
+    <path android:fillColor="#8E5A26" android:pathData="M33,34 H67 V58 H33 Z" />
+    <path android:fillColor="#2F8FA8" android:pathData="M33,34 L37,37 L37,61 L33,58 Z" />
+    <path android:fillColor="#4B3AA0" android:pathData="M33,34 H67 L71,37 H37 Z" />
+    <!-- the front board and its frame -->
+    <path android:fillColor="#D29450" android:pathData="M37,37 H71 V61 H37 Z" />
+    <path android:strokeColor="#7A4A1E" android:strokeWidth="1.2" android:pathData="M37.6,37.6 H70.4 V60.4 H37.6 Z" />
+    <!-- the reed plate -->
+    <path android:fillColor="#3A2317" android:pathData="M43,44 H65 V54 H43 Z" />
+    <!-- the lower row of tabs -->
+    <path android:fillColor="#EBC58C" android:pathData="M44.4,49.5 h1.6 v3.4 h-1.6 Z M47.1,49.5 h1.6 v3.4 h-1.6 Z M49.8,49.5 h1.6 v3.4 h-1.6 Z M52.5,49.5 h1.6 v3.4 h-1.6 Z M55.2,49.5 h1.6 v3.4 h-1.6 Z M57.9,49.5 h1.6 v3.4 h-1.6 Z M60.6,49.5 h1.6 v3.4 h-1.6 Z M63.3,49.5 h1.6 v3.4 h-1.6 Z" />
+    <!-- the upper row, between them; one open and glowing -->
+    <path android:fillColor="#EBC58C" android:pathData="M46,45.2 h1.6 v3.4 h-1.6 Z M48.7,45.2 h1.6 v3.4 h-1.6 Z M54.1,45.2 h1.6 v3.4 h-1.6 Z M59.5,45.2 h1.6 v3.4 h-1.6 Z" />
+    <path android:fillColor="#FFB347" android:pathData="M56.8,44.4 h1.6 v3.4 h-1.6 Z" />
+    <!--VERSION-->
+</vector>

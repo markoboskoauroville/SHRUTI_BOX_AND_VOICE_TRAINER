@@ -31,7 +31,7 @@ object Shruti {
 
     private val INTERVALS = mapOf(
         listOf(0, 7) to "Perfect fifth", listOf(0, 5) to "Perfect fourth", listOf(0, 12) to "Octave",
-        listOf(0, 4) to "Major third", listOf(0, 3) to "Minor third", listOf(0, 7, 12) to "Sa Pa Sa'", listOf(0, 5, 12) to "Sa Ma Sa'"
+        listOf(0, 4) to "Major third", listOf(0, 3) to "Minor third", listOf(0, 7, 12) to "Sa Pa Sa'", listOf(0, 5, 12) to "Sa ma Sa'"
     )
     private val CHORDS = listOf(
         setOf(0, 4, 7) to " major", setOf(0, 3, 7) to " minor", setOf(0, 5, 7) to "sus4", setOf(0, 2, 7) to "sus2",

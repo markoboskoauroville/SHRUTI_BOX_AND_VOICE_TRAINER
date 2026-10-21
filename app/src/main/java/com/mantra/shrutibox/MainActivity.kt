@@ -29,8 +29,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -102,7 +104,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             ShrutiScreen(
                 mixer = engine.mixer,
+                startTab = prefs.getInt("tab", 0),
                 onKey = { prefs.edit { putInt("key", it) } },
+                onTab = { prefs.edit { putInt("tab", it) } },
                 onAnyOpen = { open ->
                     // a drone is played with the hands busy: the screen stays on while a reed sounds
                     if (open) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -129,9 +133,12 @@ private fun openLatest(c: Context) {
 private class Tab(val valve: Int, val rect: Rect, val upper: Boolean)
 
 @Composable
-private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit) {
+private fun ShrutiScreen(
+    mixer: Mixer, startTab: Int, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
+) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
     var key by remember { mutableIntStateOf(mixer.key) }
+    var tab by remember { mutableIntStateOf(startTab.coerceIn(0, Presets.TABS.size - 1)) }
     var frame by remember { mutableLongStateOf(0L) }
     val tabs = remember { mutableStateListOf<Tab>() }
     val measurer = rememberTextMeasurer()
@@ -143,6 +150,7 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
     fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now) }
+    fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
     Column(
@@ -159,9 +167,7 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
             )
         }
 
-        Spacer(Modifier.weight(1f))
-
-        // the box, as on the reference page: 640 × 230 of its units, the valves drawn inside with room for their glow
+        // the box, as on the reference page: 680 × 230 of its units, the valves drawn inside with room for their glow
         Canvas(
             Modifier.fillMaxWidth().aspectRatio(BOX_W / BOX_H).pointerInput(Unit) {
                 detectTapGestures { p ->
@@ -176,16 +182,16 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
             if (tabs.size != laid.size || tabs.zip(laid).any { (a, b) -> a.rect != b.rect }) { tabs.clear(); tabs.addAll(laid) }
             val breath = ((mixer.breath() - 1.0) / Mixer.BELLOWS_DEPTH).toFloat()      // -1..1
             val t = frame / 1e9
-            for (upper in listOf(false, true)) for (tab in laid.filter { it.upper == upper }) {
-                val on = open[tab.valve]
-                drawValve(tab, on, mixer.level(tab.valve).toFloat(), breath, t)
+            for (upper in listOf(false, true)) for (vt in laid.filter { it.upper == upper }) {
+                val on = open[vt.valve]
+                drawValve(vt, on, mixer.level(vt.valve).toFloat(), breath, t)
                 // the Western note over the Indian name, in the middle of the valve, as on the page
                 val ink = if (on) Color(0xFF05222E) else ANGEL
-                val size = if (tab.upper) 10.sp else 13.sp
-                val west = measurer.measure(Shruti.western(key, tab.valve), mono.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
-                val ind = measurer.measure(Shruti.NAMES[tab.valve], mono.copy(fontSize = size * 0.9f, letterSpacing = 0.sp, color = ink.copy(alpha = 0.7f)))
-                val r = tab.rect
-                val cy = if (tab.upper) r.top + r.height * 0.5f else r.top + r.height * 0.62f
+                val size = if (vt.upper) 10.sp else 13.sp
+                val west = measurer.measure(Shruti.western(key, vt.valve), mono.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
+                val ind = measurer.measure(Shruti.NAMES[vt.valve], mono.copy(fontSize = size * 0.9f, letterSpacing = 0.sp, color = ink.copy(alpha = 0.7f)))
+                val r = vt.rect
+                val cy = if (vt.upper) r.top + r.height * 0.5f else r.top + r.height * 0.62f
                 val top = cy - (west.size.height + ind.size.height) / 2f
                 drawText(west, topLeft = Offset(r.center.x - west.size.width / 2f, top))
                 drawText(ind, topLeft = Offset(r.center.x - ind.size.width / 2f, top + west.size.height))
@@ -193,12 +199,12 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
         }
 
         // under the box, as on the page: Reset, the notes that sound, and what they make
-        Row(Modifier.fillMaxWidth().padding(top = 18.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.height(40.dp)
                     .background(BLACK, RoundedCornerShape(20.dp))
                     .border(1.dp, if (anyOpen) ANGEL else FAINT, RoundedCornerShape(20.dp))
-                    .clickable(enabled = anyOpen) { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false }
+                    .clickable(enabled = anyOpen) { closeAll() }
                     .padding(horizontal = 18.dp),
                 contentAlignment = Alignment.Center
             ) { BasicText("RESET", style = mono.copy(color = if (anyOpen) ANGEL else LINE, fontSize = 12.sp)) }
@@ -213,9 +219,49 @@ private fun ShrutiScreen(mixer: Mixer, onKey: (Int) -> Unit, onAnyOpen: (Boolean
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        // the page's five tabs of presets
+        Row(Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Presets.TABS.forEachIndexed { i, pt ->
+                val on = i == tab
+                Box(
+                    Modifier.weight(1f).height(36.dp)
+                        .background(if (on) ANGEL else BLACK, RoundedCornerShape(18.dp))
+                        .border(1.dp, if (on) ANGEL else FAINT, RoundedCornerShape(18.dp))
+                        .clickable { tab = i; onTab(i) },
+                    contentAlignment = Alignment.Center
+                ) { BasicText(pt.title, style = mono.copy(color = if (on) BLACK else ANGEL.copy(alpha = 0.75f), fontSize = 10.sp, letterSpacing = 0.5.sp)) }
+            }
+        }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        // its cards: a tap closes every valve and opens the preset's; a tap on the one that sounds closes it again
+        val current = Presets.TABS[tab]
+        Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
+            BasicText(current.intro, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.5f)), modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
+            for (p in current.presets) {
+                val sounding = openValves == p.valves.sorted()
+                Column(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                        .background(if (sounding) Color(0xFF0A2633) else BLACK, RoundedCornerShape(16.dp))
+                        .border(1.dp, if (sounding) ANGEL else FAINT, RoundedCornerShape(16.dp))
+                        .clickable {
+                            closeAll()
+                            if (!sounding) for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }
+                        }
+                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        BasicText(p.name, style = mono.copy(fontSize = 14.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold, color = if (sounding) CORE else ANGEL))
+                        Spacer(Modifier.weight(1f))
+                        BasicText(p.valves.sorted().joinToString(" ") { Shruti.western(key, it) }, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = HALO))
+                    }
+                    if (p.level.isNotEmpty()) BasicText(p.level.uppercase(), style = mono.copy(fontSize = 9.sp, letterSpacing = 2.sp, color = ANGEL.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
+                    BasicText(p.about, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.75f)), modifier = Modifier.padding(top = 4.dp))
+                    BasicText(p.usedIn, style = mono.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = ANGEL.copy(alpha = 0.45f)), modifier = Modifier.padding(top = 2.dp))
+                }
+            }
+        }
+
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Shruti.KEYS.forEachIndexed { i, name ->
                 val on = i == key
                 Box(

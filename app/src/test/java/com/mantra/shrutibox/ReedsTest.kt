@@ -35,6 +35,13 @@ class ReedsTest {
     @Test fun detectsTheSeventh() = assertEquals("C7", Shruti.detect(0, listOf(0, 4, 7, 10)))
     @Test fun unnamedIsEmpty() = assertEquals("", Shruti.detect(0, listOf(0, 1, 2)))
 
+    @Test fun fivePresetTabsAsOnThePage() = assertEquals(listOf(5, 6, 6, 12, 12), Presets.TABS.map { it.presets.size })
+    @Test fun everyPresetOpensRealValves() = Presets.TABS.flatMap { it.presets }.forEach { p ->
+        assertTrue(p.name, p.valves.isNotEmpty() && p.valves.all { it in 0 until Shruti.COUNT } && p.valves.distinct().size == p.valves.size)
+    }
+    @Test fun pageNotesBecomeValves() = assertEquals(listOf(0, 6, 7, 12), Presets.valves("C,F#,G,C2"))
+    @Test fun aChordPresetIsDetected() = assertEquals("G major", Shruti.detect(0, Presets.TABS[4].presets[2].valves))
+
     @Test fun waveIsNormalised() {
         val p = Wave.table.maxOf { abs(it) }
         assertEquals(1f, p, 1e-4f)

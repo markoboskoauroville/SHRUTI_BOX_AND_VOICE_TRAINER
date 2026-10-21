@@ -25,3 +25,13 @@
    key). Tried on the Pixel 7 emulator in portrait: the bars hide, the thirteen capsules fill the screen, Sa, Pa and
    the upper Ma opened and glowed (blurred halo, white heart, rising light), OFF closed them, no crash. Waiting for
    Marko's eye and thumb on the phone.
+
+## v3 — requested 21.10.2026
+
+> The buttons are too tall. It doesn't matter if there's empty space on the screen, that's okay. Just make them more square, maybe a 2:1 ratio. Basically, look at the web page I uploaded and copy that interface, the same. with the new color scheme
+
+1. The valves as on reference-v2-layout.html: the eight a little over 2 tall to 1 wide (70 × 140 on the page's
+   scale), the five narrower and higher, overlapping the top of the eight as on the page; empty space is fine.
+2. Each valve shows its Western note and its Indian name, as on the page; under the box the Reset button, the current
+   notes and what they make (an interval or a chord), as on the page.
+3. The v2 colours stay: black ground, light-blue glowing valves.

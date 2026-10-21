@@ -8,4 +8,7 @@
    plate with its row of valve tabs); a tap on a valve opens it and its reed sounds, a tap again closes it; the bellows
    keep the drone going. Very simple.
 2. The APK built by GitHub Actions, published as a release, the link given to Marko.
-   **Status:** in progress (logged 21.10.2026).
+   **Status:** done, v1 (21.10.2026, 11:35–11:52). Built by GitHub Actions at the first push (Test 1: 20 cases, 0
+   failures; signed with the permanent PKCS12 key, SHA-256 92:BC:8F:89…), release v1 `1-shrutibox-v1.apk` (729 KB).
+   Tried on the Pixel 7 emulator in portrait: the box draws, Sa and Pa open, glow and sound (one float track at 48 kHz,
+   underruns flat after the start), KEY moves to D, OFF closes all. Waiting for Marko's ear and thumb.

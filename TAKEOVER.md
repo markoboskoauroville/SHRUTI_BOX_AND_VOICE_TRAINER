@@ -16,7 +16,7 @@ now and give it to me to download."*
 
 | v | What | Tried by Marko |
 |---|---|---|
-| 1 | The box in vectors, 13 valves (8 + 5), synthesised reeds with beating and breathing bellows, KEY C–B, OFF | not yet |
+| 1 | The box in vectors, 13 valves (8 + 5), synthesised reeds with beating and breathing bellows, KEY C–B, OFF | on the Pixel 7 emulator (no sound out there); Marko not yet |
 
 ## Next, if he asks
 

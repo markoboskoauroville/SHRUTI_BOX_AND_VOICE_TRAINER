@@ -39,3 +39,15 @@
    `3-shrutibox-v3.apk`. On the Pixel 7 emulator: the box as on the page in the v2 colours, valves 70 × 140 and 40 × 100
    in the page's units, Western note over Indian name; Sa Ga Pa in D glowed and read "D major", dha over Pa opened and
    closed (the upper valves win where they overlap), RESET closed all, no crash. Waiting for Marko on the phone.
+
+## v4 — requested 21.10.2026
+
+> Please add all other features from my web app iAudio with different scale presets. You can redesign them in the style of this app.
+
+("iAudio" read as the web app he uploaded, reference-v2-layout.html: no project of that name is on the Mac.)
+
+1. The page's presets, all of them, in five tabs: Basic, Intermediate and Advanced drones, Ragas, Western chords; each
+   with its name, level, description and where it is used. A tap closes all valves and opens the preset's.
+2. Redesigned in this app's style: black, light blue, rounded, monospace; the preset that sounds now glows.
+3. What the page has that a phone does not need: the light theme (this app is dark by request) and the computer
+   keyboard shortcuts.

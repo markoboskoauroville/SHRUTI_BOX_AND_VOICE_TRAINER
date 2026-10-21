@@ -66,3 +66,10 @@
    (the APK from that run, no release), is tested on the phone, and only then is merged to main and released.
 3. "SHRUTI" and "v4" leave the main screen; a settings button takes their place. In settings: the version, the colour
    scheme (cold blue as now, warm orange), which parts of the screen show, and the layout fixed to portrait or landscape.
+   **Status:** done, v5 (21.10.2026). Built on the test branch (no release), tried on Marko's real Pixel 7 over USB
+   (scrcpy on the MacBook screen, sound on the phone): RAGAS → Yaman lit Yaman only, Bhairav lit Bhairav only, a second
+   tap closed it, Malkauns and Bageshri (both Sa ma Sa') each alone; a key change kept the card; valves by hand, an
+   upper valve over Pa, RESET; settings: WARM, LANDSCAPE (valves and sound carried through the turn), hiding names,
+   notes, presets and keys, Back to leave; force-stop and restart kept every setting; Home stops the sound thread,
+   coming back starts it; no crash, no ANR. One fix from the test: landscape with the presets hidden left half the
+   screen empty, now the box is centred and fills the height (build 14, tried again). Then merged to main and released.

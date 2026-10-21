@@ -10,8 +10,8 @@ plugins {
 val appVersion = (project.findProperty("appVersion") as String? ?: "1").trim().toInt()
 
 // THE VERSION IN THE ICON (version-visible.md, copied from MANTRA_NDI): a vector drawable has no text, so the
-// number is drawn as seven-segment strokes under the shruti box. The template is src/main/icon; the icon the
-// app ships is generated from it here, at every build.
+// number is drawn as seven-segment strokes under the valves. The templates are src/main/icon; the icon the
+// app ships, and its themed twin, are generated from them here, at every build.
 val versionIconDir = layout.buildDirectory.dir("generated/versionIcon").get().asFile
 run {
     val segments = mapOf(
@@ -49,10 +49,13 @@ run {
             .append("android:strokeLineCap=\"round\" android:strokeLineJoin=\"round\" ")
             .append("android:pathData=\"").append(moved).append("\" />\n")
     }
-    val template = file("src/main/icon/ic_launcher_foreground.xml").readText()
-    val out = File(versionIconDir, "drawable/ic_launcher_foreground.xml")
-    out.parentFile.mkdirs()
-    out.writeText(template.replace("    <!--VERSION-->\n", "    <!-- v$appVersion, generated -->\n$paths"))
+    // the icon and its themed (monochrome) twin, the same number under both
+    for (name in listOf("ic_launcher_foreground", "ic_launcher_monochrome")) {
+        val template = file("src/main/icon/$name.xml").readText()
+        val out = File(versionIconDir, "drawable/$name.xml")
+        out.parentFile.mkdirs()
+        out.writeText(template.replace("    <!--VERSION-->\n", "    <!-- v$appVersion, generated -->\n$paths"))
+    }
 }
 
 // android-app.md §3: one permanent key for the life of the app (a PKCS12, ~/.mantra-shrutibox-signing on the

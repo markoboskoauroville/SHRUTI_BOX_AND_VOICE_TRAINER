@@ -4,12 +4,38 @@
      app/build.gradle.kts writes the real icon into build/generated/versionIcon with the version drawn under the
      keys (version-visible.md). The valves as on the screen, fewer of them so they read at 48 px (app-icon.md §4):
      four of the lower row in their 2:1, three of the upper row over the gaps; two glow light blue, Sa and Pa
-     sounding; black ground. Inside the 42-unit symbol box 33…75, strokes inset by half their width.
+     sounding, each in the halo the screen throws round an open valve; black ground. Inside the 42-unit symbol box
+     33…75, strokes inset by half their width; the halos fade out before the 72-unit mask. The themed (monochrome)
+     icon is its own template beside this one, ic_launcher_monochrome.xml.
 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
+    <!-- the halos of Sa and Pa, as the screen's blur: a round glow stretched to the valve's height -->
+    <group android:pivotX="37.5" android:pivotY="53" android:scaleY="1.7">
+        <path android:pathData="M26.5,53 a11,11 0 1 0 22,0 a11,11 0 1 0 -22,0 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="37.5" android:centerY="53" android:gradientRadius="11">
+                    <item android:offset="0" android:color="#B35CC8FF" />
+                    <item android:offset="0.45" android:color="#595CC8FF" />
+                    <item android:offset="1" android:color="#005CC8FF" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+    <group android:pivotX="59.5" android:pivotY="53" android:scaleY="1.7">
+        <path android:pathData="M48.5,53 a11,11 0 1 0 22,0 a11,11 0 1 0 -22,0 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="59.5" android:centerY="53" android:gradientRadius="11">
+                    <item android:offset="0" android:color="#B35CC8FF" />
+                    <item android:offset="0.45" android:color="#595CC8FF" />
+                    <item android:offset="1" android:color="#005CC8FF" />
+                </gradient>
+            </aapt:attr>
+        </path>
+    </group>
+    <!-- the lower row: Sa and Pa open, the two between closed -->
     <path android:pathData="M35.60,44.40 H39.40 A2.2,2.2 0 0 1 41.60,46.60 V59.40 A2.2,2.2 0 0 1 39.40,61.60 H35.60 A2.2,2.2 0 0 1 33.40,59.40 V46.60 A2.2,2.2 0 0 1 35.60,44.40 Z" android:strokeColor="#9FE3FF" android:strokeWidth="0.8">
         <aapt:attr name="android:fillColor">
             <gradient android:type="linear" android:startX="33.00" android:startY="0" android:endX="42.00" android:endY="0">
@@ -30,6 +56,7 @@
         </aapt:attr>
     </path>
     <path android:pathData="M68.60,44.40 H72.40 A2.2,2.2 0 0 1 74.60,46.60 V59.40 A2.2,2.2 0 0 1 72.40,61.60 H68.60 A2.2,2.2 0 0 1 66.40,59.40 V46.60 A2.2,2.2 0 0 1 68.60,44.40 Z" android:fillColor="#0E1E26" android:strokeColor="#3C7A99" android:strokeWidth="0.8" />
+    <!-- the upper row over the gaps, closed, drawn last as on the screen -->
     <path android:pathData="M42.30,36.40 H43.70 A1.4,1.4 0 0 1 45.10,37.80 V48.20 A1.4,1.4 0 0 1 43.70,49.60 H42.30 A1.4,1.4 0 0 1 40.90,48.20 V37.80 A1.4,1.4 0 0 1 42.30,36.40 Z" android:fillColor="#0E1E26" android:strokeColor="#3C7A99" android:strokeWidth="0.8" />
     <path android:pathData="M53.30,36.40 H54.70 A1.4,1.4 0 0 1 56.10,37.80 V48.20 A1.4,1.4 0 0 1 54.70,49.60 H53.30 A1.4,1.4 0 0 1 51.90,48.20 V37.80 A1.4,1.4 0 0 1 53.30,36.40 Z" android:fillColor="#0E1E26" android:strokeColor="#3C7A99" android:strokeWidth="0.8" />
     <path android:pathData="M64.30,36.40 H65.70 A1.4,1.4 0 0 1 67.10,37.80 V48.20 A1.4,1.4 0 0 1 65.70,49.60 H64.30 A1.4,1.4 0 0 1 62.90,48.20 V37.80 A1.4,1.4 0 0 1 64.30,36.40 Z" android:fillColor="#0E1E26" android:strokeColor="#3C7A99" android:strokeWidth="0.8" />

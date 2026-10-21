@@ -84,3 +84,13 @@
 3. A row of small oval LEDs: the middle one is the exact pitch and carries the name of the last valve pressed; flat
    lights to the left, sharp to the right.
 4. The microphone only while the trainer is on and every valve is closed and silent, so it never hears the shruti.
+
+## v6, second round — 21.10.2026 (Marko sang into the test build)
+
+> yes, I did it but it's not good. You need to get the code for tuning the guitar or any other software. The LEDs are moving too slow. They are not optimized. They need to react. You need to do FFT in high resolution or something, because it's too slow. It needs to react immediately and very fast. And the second bug is that when I press voice, the sound should automatically be disengaged from the Shruti box. If you record the Shruti box sound, the pitch will be perfect. That's not what we want. We want to stop the Shruti when voice is active
+
+> search for the best guitar tuner on GitHub. What has the most forks? What is the most popular one? And get the code from any platform and convert to Android code in Kotlin
+
+5. The LEDs react immediately, as on a guitar tuner: the pitch method of the most popular open tuner on GitHub,
+   converted to Kotlin; a reading every few milliseconds, not every quarter second.
+6. VOICE stops the shruti at once: pressing it silences every reed, and the microphone never hears the box.

@@ -228,6 +228,9 @@ private fun ShrutiScreen(
     val readout = remember { Readout() }
     // ▶ SCALE (v7): the chosen raga's aroha and avaroha, one valve at a time, then its drone again
     var scaleRun by remember { mutableStateOf<ScaleRun?>(null) }
+    // ARP (v8): with it on, a card plays its notes one after the other, round and round
+    var arp by remember { mutableStateOf(false) }
+    var arpRun by remember { mutableStateOf<ArpRun?>(null) }
     val pal = PALETTES[settings.palette]
     val chosenPreset = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }
     // the chosen raga's notes, marked on the valves (v7, Marko: "yes, mark ragas"); Sa' is Sa, so it is marked too
@@ -236,11 +239,13 @@ private fun ShrutiScreen(
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
-    fun hushAll() { scaleRun = null; mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun hushAll() { scaleRun = null; arpRun = null; mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun openValves(): List<Int> = (0 until Shruti.COUNT).filter { open[it] }
     fun sound(valves: Collection<Int>) { mixer.closeAll(); for (i in 0 until Shruti.COUNT) { open[i] = i in valves; mixer.setOpen(i, open[i]) } }
     fun autoPlay(r: AutoRun) { hushAll(); open[r.note] = true; mixer.setOpen(r.note, true); target = r.note; armed = false }
     fun startAuto(v: Int) {
         if (!micGranted) askMic()
+        arpRun = null
         // the chosen raga's notes, or Sa Re Ga ma Pa Dha Ni when no raga is chosen
         val scale = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i)?.scale }?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR
         val r = AutoRun(AutoRun.from(v, scale)); run = r; autoDone = false; step++; autoPlay(r)
@@ -251,6 +256,8 @@ private fun ShrutiScreen(
             if (sr != null && sr.tick(now / 1e9)) {
                 if (sr.done) { scaleRun = null; sound(chosenPresetValves(chosen)) } else sound(listOf(sr.note))
             }
+            val ar = arpRun
+            if (ar != null && ar.tick(now / 1e9)) sound(listOf(ar.note))
             val r = run
             if (r != null && r.tick(now / 1e9, readout.percent)) {
                 when (r.phase) {
@@ -265,13 +272,23 @@ private fun ShrutiScreen(
 
     // the shruti and the voice take turns (Marko, v6): opening a valve or a preset switches VOICE off
     fun toggle(v: Int) {
+        // while AUTO runs, a tapped valve is the new beginning of the walk (v8)
         if (auto) { startAuto(v); return }
-        scaleRun = null
+        scaleRun = null; arpRun = null
         val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false }
     }
-    fun closeAll() { scaleRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+    fun closeAll() { scaleRun = null; arpRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+    /** ARP on or off; a card that sounds changes at once between its chord and its arpeggio. */
+    fun toggleArp() {
+        arp = !arp
+        val p = chosenPreset ?: return
+        val sounding = arpRun != null || openValves() == p.valves.sorted()
+        if (!sounding || scaleRun != null || run != null) return
+        if (arp) { val a = ArpRun(p.valves); arpRun = a; sound(listOf(a.note)) } else { arpRun = null; sound(p.valves) }
+    }
     fun playScale() {
         val p = chosenPreset ?: return
+        arpRun = null
         if (scaleRun != null) { scaleRun = null; sound(p.valves); return }
         if (auto) { auto = false; run = null; autoDone = false }
         armed = false
@@ -282,7 +299,10 @@ private fun ShrutiScreen(
         val again = chosen == (t to i)
         run = null
         closeAll()
-        if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i; target = p.valves.min(); armed = false }
+        if (!again) {
+            chosen = t to i; target = p.valves.min(); armed = false
+            if (arp) { val a = ArpRun(p.valves); arpRun = a; sound(listOf(a.note)) } else for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }
+        }
     }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
@@ -299,19 +319,21 @@ private fun ShrutiScreen(
         val notes: @Composable () -> Unit = { if (settings.showNotes) NotesRow(openValves, key, pal, anyOpen, cardName) { closeAll() } }
         val keys: @Composable () -> Unit = { if (settings.showKeys) KeyRow(key, pal) { key = it; mixer.key = it; onKey(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
-            PresetPanel(tab, chosen, openValves, key, pal, scaleRun != null, onScale = { playScale() }, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
+            PresetPanel(tab, chosen, openValves, key, pal, scaleRun != null, arp, arpRun != null, onArp = { toggleArp() }, onScale = { playScale() }, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
         }
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
         val autoStatus = if (!auto) null else run?.let { r ->
             val n = "${Shruti.NAMES[r.note]} ${Shruti.western(key, r.note)}"
             "${r.index + 1}/${r.notes.size} " + (if (r.phase == AutoRun.Phase.PLAY) "listen $n" else "sing $n")
-        } ?: if (autoDone) "scale complete · tap a note" else "tap a note to begin"
+        } ?: if (autoDone) "scale complete · AUTO again to stop" else "starting"
         if (step < 0) Unit                                          // step only makes the status recompose
         val trainer: @Composable () -> Unit = {
             if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted, auto, autoStatus, readout,
                 onAuto = {
+                    // AUTO starts at once from the beginning of the scale; AUTO again stops it (v8)
                     auto = !auto
-                    if (!auto) { run = null; autoDone = false; hushAll(); armed = false } else if (!micGranted) askMic()
+                    if (!auto) { run = null; autoDone = false; hushAll(); armed = false }
+                    else startAuto((chosenPreset?.scale?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR).min())
                 }) {
                 // VOICE stops the shruti at once: the microphone must hear the singer, never the box
                 if (!armed || !micGranted) { hushAll(); chosen = null }
@@ -423,15 +445,27 @@ private fun NotesRow(openValves: List<Int>, key: Int, pal: Palette, anyOpen: Boo
 /** The page's five tabs of presets and their cards. A card lights while it is the chosen one and its valves sound. */
 @Composable
 private fun ColumnScope.PresetPanel(
-    tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, scaling: Boolean, onScale: () -> Unit,
-    onTab: (Int) -> Unit, onChoose: (Int, Int) -> Unit
+    tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, scaling: Boolean, arp: Boolean, arping: Boolean,
+    onArp: () -> Unit, onScale: () -> Unit, onTab: (Int) -> Unit, onChoose: (Int, Int) -> Unit
 ) {
-    Box(Modifier.padding(top = 14.dp, bottom = 10.dp)) { Pills(Presets.TABS.map { it.title }, tab, pal, height = 36, fontSize = 10, onPick = onTab) }
+    Row(Modifier.padding(top = 14.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(1f)) { Pills(Presets.TABS.map { it.title }, tab, pal, height = 36, fontSize = 10, onPick = onTab) }
+        Spacer(Modifier.width(6.dp))
+        // ARP (v8): a switch of its own, beside the tabs; lit while it is on
+        Box(
+            Modifier.height(36.dp)
+                .background(if (arp) pal.light else BLACK, RoundedCornerShape(18.dp))
+                .border(1.dp, if (arp) pal.light else pal.faint, RoundedCornerShape(18.dp))
+                .clickable(onClick = onArp)
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.Center
+        ) { BasicText("ARP", style = MONO.copy(color = if (arp) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 10.sp, letterSpacing = 0.5.sp)) }
+    }
     val current = Presets.TABS[tab]
     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
         BasicText(current.intro, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)), modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
         current.presets.forEachIndexed { i, p ->
-            val sounding = chosen == (tab to i) && (openValves == p.valves.sorted() || scaling)
+            val sounding = chosen == (tab to i) && (openValves == p.valves.sorted() || scaling || arping)
             Column(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     .background(if (sounding) pal.cardOn else BLACK, RoundedCornerShape(16.dp))

@@ -11,7 +11,9 @@ import kotlin.math.abs
  * back; when the voice stays within [within] percent of a semitone for [holdS] seconds the next note plays. After the
  * last one the walk is DONE. [tick] is called every frame with the time and the tuner's reading.
  */
-class AutoRun(val notes: List<Int>, val playS: Double = 4.0, val holdS: Double = 0.3, val within: Double = 10.0) {
+// v8 (Marko): "you play the note for 3 seconds And then I sing it. If I hover inside the 20% ... for 2 seconds, you go
+// to the next note."
+class AutoRun(val notes: List<Int>, val playS: Double = 3.0, val holdS: Double = 2.0, val within: Double = 20.0) {
     enum class Phase { PLAY, SING, DONE }
 
     var index = 0
@@ -72,6 +74,26 @@ class ScaleRun(val notes: List<Int>, val stepS: Double = 0.7) {
         val hold = if (index == notes.size - 1) stepS * 2 else stepS
         if (now - since < hold - 1e-9) return false
         index++; since = now
+        return true
+    }
+}
+
+/**
+ * ARP (v8, Marko: "any preset chord will play as arpeggio, one note after the other"): the notes of a card one at a
+ * time, low to high, round and round every [stepS] seconds, until it is stopped.
+ */
+class ArpRun(notes: List<Int>, val stepS: Double = 0.4) {
+    val notes = notes.distinct().sorted()
+    var index = 0
+        private set
+    val note: Int get() = notes[index % notes.size]
+    private var since = Double.NaN
+
+    /** Moves on to [now] (seconds); true when the next note begins. */
+    fun tick(now: Double): Boolean {
+        if (since.isNaN()) since = now
+        if (notes.size < 2 || now - since < stepS - 1e-9) return false
+        index = (index + 1) % notes.size; since = now
         return true
     }
 }

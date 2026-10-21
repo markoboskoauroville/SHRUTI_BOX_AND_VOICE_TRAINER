@@ -116,19 +116,27 @@ class ReedsTest {
     @Test fun autoWalksTheScaleFromTheTappedNote() = assertEquals(listOf(4, 5, 7, 9, 11, 12), AutoRun.from(4, AutoRun.MAJOR))
     @Test fun autoFromANoteOutsideTheScale() = assertEquals(listOf(1, 2, 4, 5, 7, 9, 11, 12), AutoRun.from(1, AutoRun.MAJOR))
     @Test fun autoFollowsARaga() = assertEquals(listOf(0, 3, 5, 8, 10, 12), AutoRun.from(0, listOf(0, 3, 5, 8, 10)))
-    @Test fun autoPlaysFourSecondsThenListens() {
+    // v8: the note plays 3 s; the voice must stay within ±20 % for 2 s
+    @Test fun autoPlaysThreeSecondsThenListens() {
         val r = AutoRun(listOf(0, 2))
-        assertFalse(r.tick(0.0, null)); assertFalse(r.tick(3.9, null)); assertEquals(AutoRun.Phase.PLAY, r.phase)
-        assertTrue(r.tick(4.0, null)); assertEquals(AutoRun.Phase.SING, r.phase)
+        assertFalse(r.tick(0.0, null)); assertFalse(r.tick(2.9, null)); assertEquals(AutoRun.Phase.PLAY, r.phase)
+        assertTrue(r.tick(3.0, null)); assertEquals(AutoRun.Phase.SING, r.phase)
     }
-    @Test fun autoMovesOnOnlyWhenTheVoiceHoldsTheNote() {
-        val r = AutoRun(listOf(0, 2)); r.tick(0.0, null); r.tick(4.0, null)
-        assertFalse(r.tick(4.1, 40.0)); assertFalse(r.tick(4.2, 5.0)); assertFalse(r.tick(4.4, 50.0))   // off, on, off again
-        assertFalse(r.tick(4.5, -8.0)); assertTrue(r.tick(4.8, 3.0))                                      // held 0.3 s
+    @Test fun autoMovesOnAfterTwoSecondsWithinTwenty() {
+        val r = AutoRun(listOf(0, 2)); r.tick(0.0, null); r.tick(3.0, null)
+        assertFalse(r.tick(3.1, 19.0)); assertFalse(r.tick(4.0, 35.0))                  // on, then out: the count restarts
+        assertFalse(r.tick(4.1, -18.0)); assertFalse(r.tick(6.0, 12.0))                 // 1.9 s on the note
+        assertTrue(r.tick(6.1, 5.0))                                                     // 2.0 s
         assertEquals(AutoRun.Phase.PLAY, r.phase); assertEquals(2, r.note)
     }
+    @Test fun arpGoesRoundTheChord() {
+        val a = ArpRun(listOf(7, 0, 4)); assertEquals(0, a.note)
+        assertFalse(a.tick(0.0)); assertFalse(a.tick(0.3)); assertTrue(a.tick(0.4)); assertEquals(4, a.note)
+        assertTrue(a.tick(0.8)); assertEquals(7, a.note); assertTrue(a.tick(1.2)); assertEquals(0, a.note)
+    }
+    @Test fun arpOfOneNoteStays() { val a = ArpRun(listOf(5)); a.tick(0.0); assertFalse(a.tick(5.0)); assertEquals(5, a.note) }
     @Test fun autoEndsAtTheTop() {
-        val r = AutoRun(listOf(12)); r.tick(0.0, null); r.tick(4.0, null); r.tick(4.1, 0.0); r.tick(4.5, 0.0)
+        val r = AutoRun(listOf(12)); r.tick(0.0, null); r.tick(3.0, null); r.tick(3.1, 0.0); r.tick(5.1, 0.0)
         assertEquals(AutoRun.Phase.DONE, r.phase)
     }
 

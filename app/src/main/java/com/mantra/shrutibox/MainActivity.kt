@@ -237,7 +237,9 @@ private fun ShrutiScreen(
             return@Box
         }
         val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames) { toggle(it) } }
-        val notes: @Composable () -> Unit = { if (settings.showNotes) NotesRow(openValves, key, pal, anyOpen) { closeAll() } }
+        // the chosen card names what sounds (Sus2 and Sus4 on Pa are the same notes; a raga is not a chord)
+        val cardName = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
+        val notes: @Composable () -> Unit = { if (settings.showNotes) NotesRow(openValves, key, pal, anyOpen, cardName) { closeAll() } }
         val keys: @Composable () -> Unit = { if (settings.showKeys) KeyRow(key, pal) { key = it; mixer.key = it; onKey(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
             PresetPanel(tab, chosen, openValves, key, pal, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
@@ -331,7 +333,7 @@ private fun KeyRow(key: Int, pal: Palette, onKey: (Int) -> Unit) {
 
 /** Under the box, as on the reference page: Reset, the notes that sound, and what they make. */
 @Composable
-private fun NotesRow(openValves: List<Int>, key: Int, pal: Palette, anyOpen: Boolean, onReset: () -> Unit) {
+private fun NotesRow(openValves: List<Int>, key: Int, pal: Palette, anyOpen: Boolean, cardName: String?, onReset: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(top = 4.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
             Modifier.height(40.dp)
@@ -346,7 +348,7 @@ private fun NotesRow(openValves: List<Int>, key: Int, pal: Palette, anyOpen: Boo
                 openValves.joinToString("  ") { "${Shruti.NAMES[it]} ${Shruti.western(key, it)}" }.ifEmpty { "—" },
                 style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.85f))
             )
-            val named = Shruti.detect(key, openValves)
+            val named = cardName ?: Shruti.detect(key, openValves)
             if (named.isNotEmpty()) BasicText(named, style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = pal.halo, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
         }
     }

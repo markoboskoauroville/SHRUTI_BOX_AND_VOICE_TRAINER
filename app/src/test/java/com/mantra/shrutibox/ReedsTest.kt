@@ -35,7 +35,29 @@ class ReedsTest {
     @Test fun detectsTheSeventh() = assertEquals("C7", Shruti.detect(0, listOf(0, 4, 7, 10)))
     @Test fun unnamedIsEmpty() = assertEquals("", Shruti.detect(0, listOf(0, 1, 2)))
 
-    @Test fun fivePresetTabsAsOnThePage() = assertEquals(listOf(5, 6, 6, 12, 12), Presets.TABS.map { it.presets.size })
+    @Test fun threeTabs() = assertEquals(listOf("DRONES", "RAGAS", "CHORDS"), Presets.TABS.map { it.title })
+    // v7, the ground truth: a raga's drone never sounds a note the raga does not have (Puriya has no Pa)
+    @Test fun noRagaDroneOutsideItsScale() = Presets.TABS[1].presets.forEach { r ->
+        assertTrue(r.name, r.scale.isNotEmpty())
+        assertTrue(r.name, r.valves.all { it % 12 in r.scale })
+    }
+    @Test fun ragaDronesAreOneNoteBesideSa() = Presets.TABS[1].presets.forEach { r ->
+        assertTrue(r.name, r.valves == Presets.PA || r.valves == Presets.MA || r.valves == Presets.NI)
+    }
+    @Test fun theKnownTunings() {
+        val r = Presets.TABS[1].presets.associateBy { it.name }
+        assertEquals(Presets.NI, r.getValue("Puriya").valves); assertEquals(Presets.NI, r.getValue("Marwa").valves)
+        assertEquals(Presets.MA, r.getValue("Malkauns").valves); assertEquals(Presets.MA, r.getValue("Bageshri").valves)
+        assertEquals(Presets.PA, r.getValue("Yaman").valves); assertEquals(Presets.PA, r.getValue("Bhairavi").valves)
+    }
+    @Test fun ragasWithoutPaHaveNoPa() = Presets.TABS[1].presets.filter { 7 !in it.scale }.forEach { assertFalse(it.name, 7 in it.valves) }
+    @Test fun namesAreUnique() = Presets.TABS.forEach { t -> assertEquals(t.title, t.presets.size, t.presets.map { it.name }.toSet().size) }
+    @Test fun everyChordIsTheChordItNames() {
+        val want = mapOf("Major" to "C major", "Minor" to "C minor", "Major on Pa" to "G major", "Major on ma" to "F major",
+            "Minor on Dha" to "A minor", "Minor on Re" to "D minor", "Sus4" to "Csus4", "Sus2" to "Csus2",
+            "Major 7th" to "Cmaj7", "Minor 7th" to "Cm7", "Dominant 7th" to "G7")
+        Presets.TABS[2].presets.forEach { c -> assertEquals(c.name, want.getValue(c.name), Shruti.detect(0, c.valves)) }
+    }
     @Test fun everyPresetOpensRealValves() = Presets.TABS.flatMap { it.presets }.forEach { p ->
         assertTrue(p.name, p.valves.isNotEmpty() && p.valves.all { it in 0 until Shruti.COUNT } && p.valves.distinct().size == p.valves.size)
     }

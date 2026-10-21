@@ -73,6 +73,11 @@ class ReedsTest {
         assertEquals(Pitch.SIDE, Pitch.led(300.0)); assertEquals(-Pitch.SIDE, Pitch.led(-90.0))
     }
 
+    @Test fun aHeldNoteIsSteady() = assertTrue(Pitch.steady(listOf(220.0, 221.0, 219.5)))
+    @Test fun aClatterIsNotSteady() = assertFalse(Pitch.steady(listOf(220.0, 330.0, 180.0)))
+    @Test fun twoFramesAreNotEnough() = assertFalse(Pitch.steady(listOf(220.0, 220.0)))
+    @Test fun namesTheNoteHeard() { assertEquals("A", Pitch.note(440.0)); assertEquals("C", Pitch.note(65.41)); assertEquals("F#", Pitch.note(185.0)) }
+
     @Test fun waveIsNormalised() {
         val p = Wave.table.maxOf { abs(it) }
         assertEquals(1f, p, 1e-4f)

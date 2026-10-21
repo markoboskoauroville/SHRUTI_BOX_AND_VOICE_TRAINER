@@ -13,7 +13,7 @@ object Pitch {
     const val LOW_HZ = 65.0
     const val HIGH_HZ = 1100.0
     /** Quieter than this (RMS of the frame) is silence: no pitch is reported. */
-    const val SILENCE = 0.008
+    const val SILENCE = 0.015
     /** The tuner's row: LEDs either side of the middle one, each this many percent of a semitone. */
     const val SIDE = 5
     const val STEP = 10
@@ -68,6 +68,19 @@ object Pitch {
         val r = ((cents % 1200.0) + 1200.0) % 1200.0          // 0 until 1200
         return if (r >= 600.0) r - 1200.0 else r
     }
+
+    /**
+     * A held note, not a noise: the last [n] pitches heard lie within [span] percent of a semitone of each other.
+     * A voice holding a note does this; a knock, a word, a clatter in the room does not (found on the phone, v6).
+     */
+    fun steady(hz: List<Double>, n: Int = 3, span: Double = 35.0): Boolean {
+        if (hz.size < n) return false
+        val cents = hz.takeLast(n).map { 1200.0 * ln(it) / ln(2.0) }
+        return cents.max() - cents.min() <= span
+    }
+
+    /** The note a pitch is nearest to, as the keys name it: what the singer actually sang. */
+    fun note(hz: Double): String = Shruti.KEYS[(((12.0 * ln(hz / Shruti.C3) / ln(2.0)).roundToInt() % 12) + 12) % 12]
 
     /** Which LED lights for [percent]: 0 is the middle, -SIDE the far left (flat), +SIDE the far right (sharp). */
     fun led(percent: Double): Int = (percent / STEP).roundToInt().coerceIn(-SIDE, SIDE)

@@ -432,6 +432,7 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
     val goal by rememberUpdatedState(target?.let { Shruti.freq(key, it) })
     var listening by remember { mutableStateOf(false) }
     var percent by remember { mutableStateOf<Double?>(null) }
+    var heard by remember { mutableStateOf("") }
     var shownAt by remember { mutableLongStateOf(0L) }
     val recent = remember { ArrayDeque<Double>() }
     LaunchedEffect(Unit) {
@@ -447,9 +448,12 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
                 val hz = ear.hz
                 val g = goal
                 if (hz > 0 && g != null) {
-                    // the median of the last five frames (about 0.4 s): a wavering voice reads steady
-                    recent.addLast(Pitch.percentOff(hz, g)); if (recent.size > 5) recent.removeFirst()
-                    percent = recent.sorted()[recent.size / 2]; shownAt = now
+                    recent.addLast(hz); if (recent.size > 5) recent.removeFirst()
+                    // only a held note shows: three frames agreeing (a quarter of a second), read as their median
+                    if (Pitch.steady(recent)) {
+                        val mid = recent.takeLast(3).sorted()[1]
+                        percent = Pitch.percentOff(mid, g); heard = Pitch.note(mid); shownAt = now
+                    }
                 } else recent.clear()
             }
             // the last reading stays for a second and a half after the voice stops, then the row goes dark
@@ -500,7 +504,7 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
                 target == null -> "play a note"
                 !listening -> "close the shruti, then sing $label"
                 p == null -> "sing $label"
-                else -> (if (p > 0.5) "+" else if (p < -0.5) "−" else "") + "${abs(p).roundToInt()} %   $label"
+                else -> (if (p > 0.5) "+" else if (p < -0.5) "−" else "") + "${abs(p).roundToInt()} %   $label   you: $heard"
             }
             BasicText(
                 words,

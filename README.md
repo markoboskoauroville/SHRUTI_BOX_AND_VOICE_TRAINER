@@ -1,9 +1,10 @@
 # Mantra Shruti Box
 
-A shruti box for Android, drawn in vectors from Marko's photo (`reference-shruti-box.png`): the teak box, the blue
-bellows that breathe, the dark reed plate with its thirteen valve tabs. **Tap a valve and its reed sounds; tap it again
-and it closes.** Open as many as you like for the drone. Built 21.10.2026 for Marko's request (momentaryupdates.md).
-
+A shruti box for Android. Since v2 (21.10.2026) it is no longer a picture of a wooden box: the whole portrait screen is
+the instrument, black, with thirteen light-blue capsules placed as on a shruti box's reed plate (the eight of the scale
+along the bottom, the five between them above, `reference-v2-layout.html`). **Tap a valve and its reed sounds; tap it
+again and it closes.** An open valve glows: a blurred halo that breathes with the bellows, a white heart, light rising
+through it. v1 (the teak box from `reference-shruti-box.png`) is in the history. Requests: momentaryupdates.md.
 ## On the screen
 
 - **The box.** Eight tabs on the lower row: Sa Re Ga ma Pa Dha Ni Sa'. Five on the upper row, between them, as on a

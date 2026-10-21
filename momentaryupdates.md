@@ -56,3 +56,13 @@
    (ma plain, Ma sharp). GitHub Actions green (Test 1: 31 cases, 0 failures), release v4. On the Pixel 7 emulator in D:
    CHORDS → Major opened Sa Ga Pa, the line read "D major", the card lit; the same card again closed them; no crash.
    The light theme and the keyboard shortcuts of the page were left out (dark only by request; a phone has no keyboard).
+
+## v5 — requested 21.10.2026
+
+> please fully test the Shruti box in the real phone which is now attached through USB. Pixel 7 phone, open it with screen copy and test it truly. There is a bug in the ragas when I open the ragas. One raga opens all ragas, so I cannot select individual ragas. That's the greatest bug. Test fully this app before release also, I don't need to have Shruti and v4 inside the main interface. Instead of v4, there should be a setting button where I see version And different options for user interface, different color scheme. This is a blue cold color scheme. We need to have also orange warm color scheme. And also parts of the interface can be hidden from the settings, and user can fix layout to portrait or landscape inside the settings.
+
+1. The bug: ten ragas share the drone Sa Pa Sa', so a tap on one lit all ten. Each card is chosen by itself.
+2. Tested fully on the real Pixel 7 over USB with scrcpy, before the release: a build goes to a test branch first
+   (the APK from that run, no release), is tested on the phone, and only then is merged to main and released.
+3. "SHRUTI" and "v4" leave the main screen; a settings button takes their place. In settings: the version, the colour
+   scheme (cold blue as now, warm orange), which parts of the screen show, and the layout fixed to portrait or landscape.

@@ -6,12 +6,12 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 
 /**
- * The voice trainer's microphone (v6): one AudioRecord, mono float at 48 kHz, on its own thread, read 4096 samples
- * at a time (85 ms) and given to [Pitch.detect]. It runs only while the screen asks for it ([listen]); the loop ends
- * when [running] goes false. Nothing is kept: each frame is heard and dropped.
+ * The voice trainer's microphone (v6): one AudioRecord, mono float at 48 kHz, on its own thread. A tuner's speed:
+ * every [HOP] new samples (10.7 ms) the last [WINDOW] (43 ms) go to [Pitch.detect], about 94 readings a second. It
+ * runs only while the screen asks for it ([listen]); the loop ends when [running] goes false. Nothing is kept.
  */
 class Ear {
-    companion object { const val RATE = 48_000; const val FRAME = 4096 }
+    companion object { const val RATE = 48_000; const val WINDOW = 2048; const val HOP = 512 }
 
     /** The last pitch heard, in Hz, or 0 for silence; and when it was heard (System.nanoTime). */
     @Volatile var hz = 0.0
@@ -34,17 +34,21 @@ class Ear {
         thread = Thread({
             val min = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT)
             val rec = try {
-                AudioRecord(MediaRecorder.AudioSource.MIC, RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT, maxOf(min, FRAME * 4 * 2))
+                AudioRecord(MediaRecorder.AudioSource.VOICE_RECOGNITION, RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_FLOAT, maxOf(min, WINDOW * 4 * 2))
             } catch (_: Exception) { null }
             if (rec == null || rec.state != AudioRecord.STATE_INITIALIZED) { rec?.release(); failed = true; running = false; return@Thread }
-            val buf = FloatArray(FRAME)
+            val window = FloatArray(WINDOW)
+            val hop = FloatArray(HOP)
             rec.startRecording()
             try {
                 while (running) {
-                    val got = rec.read(buf, 0, FRAME, AudioRecord.READ_BLOCKING)
+                    val got = rec.read(hop, 0, HOP, AudioRecord.READ_BLOCKING)
                     if (got < 0) break                                   // the microphone was taken away: stop
                     if (got == 0) continue
-                    hz = Pitch.detect(buf, got, RATE) ?: 0.0
+                    // slide the window: the oldest samples out, the new ones in at the end
+                    System.arraycopy(window, got, window, 0, WINDOW - got)
+                    System.arraycopy(hop, 0, window, WINDOW - got, got)
+                    hz = Pitch.detect(window, WINDOW, RATE) ?: 0.0
                     heardAt = System.nanoTime()
                 }
             } finally {

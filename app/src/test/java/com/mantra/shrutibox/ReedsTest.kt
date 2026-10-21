@@ -69,13 +69,26 @@ class ReedsTest {
     @Test fun flatIsMinus() = assertEquals(-30.0, Pitch.percentOff(220.0 * 2.0.pow(-30.0 / 1200), 220.0), 1e-6)
     @Test fun aSemitoneIsAHundred() = assertEquals(100.0, Pitch.percentOff(220.0 * 2.0.pow(1.0 / 12), 220.0), 1e-6)
     @Test fun ledsFromTheMiddle() {
-        assertEquals(0, Pitch.led(3.0)); assertEquals(2, Pitch.led(18.0)); assertEquals(-1, Pitch.led(-12.0))
+        assertEquals(0, Pitch.led(2.0)); assertEquals(4, Pitch.led(18.0)); assertEquals(-2, Pitch.led(-12.0))
         assertEquals(Pitch.SIDE, Pitch.led(300.0)); assertEquals(-Pitch.SIDE, Pitch.led(-90.0))
     }
 
-    @Test fun aHeldNoteIsSteady() = assertTrue(Pitch.steady(listOf(220.0, 221.0, 219.5)))
-    @Test fun aClatterIsNotSteady() = assertFalse(Pitch.steady(listOf(220.0, 330.0, 180.0)))
-    @Test fun twoFramesAreNotEnough() = assertFalse(Pitch.steady(listOf(220.0, 220.0)))
+    // the tuner's window (Ear.kt): 2048 samples, 43 ms, enough down to a low bass
+    @Test fun hearsInTheShortWindow() = listOf(82.41, 110.0, 196.0, 329.63, 523.25, 987.77).forEach { hz ->
+        val got = Pitch.detect(tone(hz, n = 2048, harmonics = 5), 2048, rate)!!
+        assertEquals("at $hz", 0.0, Pitch.percentOff(got, hz), 2.0)
+    }
+    @Test fun aQuietRoomIsSilence() = assertEquals(null, Pitch.detect(tone(220.0, n = 2048, amp = 0.005), 2048, rate))
+    @Test fun fftRoundTrip() {
+        val re = DoubleArray(16) { kotlin.math.sin(it * 0.7) }; val im = DoubleArray(16); val keep = re.copyOf()
+        Pitch.fft(re, im, false); Pitch.fft(re, im, true)
+        for (i in 0 until 16) assertEquals(keep[i], re[i], 1e-9)
+    }
+    @Test fun hushSilencesAtOnce() {
+        val m = Mixer(rate); m.setOpen(0, true); m.setOpen(7, true); peak(m, 0.5)
+        m.hush(); peak(m, Mixer.HUSH_S + 0.005)
+        assertEquals(0.0, m.level(0), 0.0); assertEquals(0.0, m.level(7), 0.0); assertEquals(0, m.openCount())
+    }
     @Test fun namesTheNoteHeard() { assertEquals("A", Pitch.note(440.0)); assertEquals("C", Pitch.note(65.41)); assertEquals("F#", Pitch.note(185.0)) }
 
     @Test fun waveIsNormalised() {

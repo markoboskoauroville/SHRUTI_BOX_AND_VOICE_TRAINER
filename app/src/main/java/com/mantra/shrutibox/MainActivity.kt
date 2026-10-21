@@ -244,6 +244,8 @@ private fun ShrutiScreen(
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
         val trainer: @Composable () -> Unit = {
             if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted) {
+                // VOICE stops the shruti at once: the microphone must hear the singer, never the box
+                if (!armed || !micGranted) { mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
                 if (!micGranted) { askMic(); armed = true } else armed = !armed
             }
         }
@@ -434,30 +436,29 @@ private fun Trainer(mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette
     var percent by remember { mutableStateOf<Double?>(null) }
     var heard by remember { mutableStateOf("") }
     var shownAt by remember { mutableLongStateOf(0L) }
-    val recent = remember { ArrayDeque<Double>() }
     LaunchedEffect(Unit) {
         var seen = 0L
         while (isActive) withFrameNanos { now ->
-            // the microphone only while the trainer is on and every reed has died away: it never hears the shruti
+            // the microphone only while the trainer is on and every reed is silent: it never hears the shruti
             val silent = (0 until Shruti.COUNT).all { mixer.level(it) == 0.0 }
             val want = live && silent && !ear.failed
             if (want != ear.on) ear.listen(want)
             listening = ear.on
-            if (!listening) { recent.clear() } else if (ear.heardAt != seen) {
+            if (listening && ear.heardAt != seen) {
                 seen = ear.heardAt
                 val hz = ear.hz
                 val g = goal
                 if (hz > 0 && g != null) {
-                    recent.addLast(hz); if (recent.size > 5) recent.removeFirst()
-                    // only a held note shows: three frames agreeing (a quarter of a second), read as their median
-                    if (Pitch.steady(recent)) {
-                        val mid = recent.takeLast(3).sorted()[1]
-                        percent = Pitch.percentOff(mid, g); heard = Pitch.note(mid); shownAt = now
-                    }
-                } else recent.clear()
+                    // a tuner's needle: it follows the voice at once, only the last few milliseconds of jitter are
+                    // smoothed; a jump of more than a semitone is followed without smoothing
+                    val now0 = Pitch.percentOff(hz, g)
+                    val was = percent
+                    percent = if (was != null && abs(now0 - was) < 100) was + 0.5 * (now0 - was) else now0
+                    heard = Pitch.note(hz); shownAt = now
+                }
             }
-            // the last reading stays for a second and a half after the voice stops, then the row goes dark
-            if (percent != null && now - shownAt > 1_500_000_000L) percent = null
+            // the last reading stays for a moment after the voice stops, then the row goes dark
+            if (percent != null && now - shownAt > 600_000_000L) percent = null
         }
     }
     DisposableEffect(Unit) { onDispose { ear.listen(false) } }

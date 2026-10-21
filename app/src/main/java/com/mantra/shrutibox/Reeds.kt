@@ -84,6 +84,7 @@ class Mixer(private val sampleRate: Int) {
         const val BELLOWS_DEPTH = 0.16
         const val DETUNE_CENTS = 1.5
         const val LEVEL = 0.32
+        const val HUSH_S = 0.02
     }
 
     @Volatile var key: Int = 0
@@ -95,10 +96,15 @@ class Mixer(private val sampleRate: Int) {
     private var norm = 1.0
     private val up = 1.0 / (ATTACK_S * sampleRate)
     private val down = 1.0 / (RELEASE_S * sampleRate)
+    /** After [hush]: every reed falls silent in [HUSH_S], fast but without a click, so the microphone can open. */
+    private val fast = 1.0 / (HUSH_S * sampleRate)
+    private var quick = false
 
     @Synchronized fun setOpen(valve: Int, isOpen: Boolean) { if (valve in 0 until Shruti.COUNT) open[valve] = isOpen }
     @Synchronized fun isOpen(valve: Int): Boolean = valve in 0 until Shruti.COUNT && open[valve]
     @Synchronized fun closeAll() { open.fill(false) }
+    /** Closes every valve and silences the box at once (the voice trainer's VOICE, v6): no 0.35 s tail. */
+    @Synchronized fun hush() { open.fill(false); quick = true }
     @Synchronized fun openCount(): Int = open.count { it }
     /** How far each reed is sounding, 0 to 1, for the screen. */
     @Synchronized fun level(valve: Int): Double = if (valve in 0 until Shruti.COUNT) gain[valve] else 0.0
@@ -122,7 +128,7 @@ class Mixer(private val sampleRate: Int) {
             val air = 1.0 + BELLOWS_DEPTH * sin(2 * PI * bellows)
             var sum = 0.0
             for (v in 0 until Shruti.COUNT) {
-                gain[v] = if (open[v]) minOf(1.0, gain[v] + up) else max(0.0, gain[v] - down)
+                gain[v] = if (open[v]) minOf(1.0, gain[v] + up) else max(0.0, gain[v] - (if (quick) fast else down))
                 if (gain[v] == 0.0) continue
                 phaseA[v] = (phaseA[v] + step[v]) % 1.0
                 phaseB[v] = (phaseB[v] + step[v] * detune) % 1.0
@@ -132,5 +138,6 @@ class Mixer(private val sampleRate: Int) {
             }
             out[s] = tanh(sum * norm * air * LEVEL * 1.6).toFloat()
         }
+        if (quick && gain.all { it == 0.0 }) quick = false
     }
 }

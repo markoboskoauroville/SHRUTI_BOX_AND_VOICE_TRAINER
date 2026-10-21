@@ -117,3 +117,10 @@
 
 3. A new icon in the app's own look: the valves as they are on the screen (the eight below, the upper ones over the
    gaps), black ground, light-blue glowing keys; the version number stays under it (version-visible.md).
+
+> Also built a new feature which is auto voice. So when I press the note button, I test the voice. As soon as I hit the right pitch, you jump to the next note, and then again after 4 seconds you activate the voice recording. And when I hit the right pitch, you go to the next one, and that's how we go back and forth until I reach the end of the scale. Of course, when I turn off auto, everything stops.
+
+4. AUTO beside VOICE. With AUTO on, a tap on a valve starts a walk up the scale from that note: the note plays
+   4 seconds, then the shruti stops and the microphone listens; when the voice is on the note (within ±10 %, held a
+   moment) the next note plays 4 seconds, then the microphone again, and so on to the end of the scale (the chosen
+   raga's notes up to Sa', or Sa Re Ga ma Pa Dha Ni Sa'). AUTO off stops everything.

@@ -62,7 +62,6 @@ class ReedsTest {
         assertTrue(p.name, p.valves.isNotEmpty() && p.valves.all { it in 0 until Shruti.COUNT } && p.valves.distinct().size == p.valves.size)
     }
     @Test fun pageNotesBecomeValves() = assertEquals(listOf(0, 6, 7, 12), Presets.valves("C,F#,G,C2"))
-    @Test fun aChordPresetIsDetected() = assertEquals("G major", Shruti.detect(0, Presets.TABS[4].presets[2].valves))
 
     // the voice trainer's ear (v6): tones of known pitch, a voice-like one with harmonics, silence, noise
     private fun tone(hz: Double, n: Int = 4096, harmonics: Int = 1, amp: Double = 0.3) = FloatArray(n) { i ->

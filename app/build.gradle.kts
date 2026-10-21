@@ -45,7 +45,7 @@ run {
                 else -> cmd + n(a + x) + "," + n((b ?: 0.0) + top)
             }
         }
-        paths.append("    <path android:strokeColor=\"#F2DDB4\" android:strokeWidth=\"1.5\" ")
+        paths.append("    <path android:strokeColor=\"#9FE3FF\" android:strokeWidth=\"1.5\" ")
             .append("android:strokeLineCap=\"round\" android:strokeLineJoin=\"round\" ")
             .append("android:pathData=\"").append(moved).append("\" />\n")
     }

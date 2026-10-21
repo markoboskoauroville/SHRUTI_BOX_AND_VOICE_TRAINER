@@ -218,13 +218,14 @@ private fun ShrutiScreen(
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
-    fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) target = v }
+    // the shruti and the voice take turns (Marko, v6): opening a valve or a preset switches VOICE off
+    fun toggle(v: Int) { val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false } }
     fun closeAll() { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     fun choose(t: Int, i: Int) {
         val p = Presets.TABS[t].presets[i]
         val again = chosen == (t to i)
         closeAll()
-        if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i; target = p.valves.min() }
+        if (!again) { for (v in p.valves) { open[v] = true; mixer.setOpen(v, true) }; chosen = t to i; target = p.valves.min(); armed = false }
     }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 

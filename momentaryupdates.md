@@ -94,3 +94,9 @@
 5. The LEDs react immediately, as on a guitar tuner: the pitch method of the most popular open tuner on GitHub,
    converted to Kotlin; a reading every few milliseconds, not every quarter second.
 6. VOICE stops the shruti at once: pressing it silences every reed, and the microphone never hears the box.
+
+## v6, third round — 21.10.2026 (after Marko sang into the tuner build: "now the tuner is much better")
+
+> now the tuner is much better. Please make this logic: when I press voice to record, it stops the playing of the shruti, and if I play shruti during voice recording, it stops voice recording
+
+7. VOICE stops the shruti (done in the second round); opening a valve or a preset while VOICE is on switches VOICE off.

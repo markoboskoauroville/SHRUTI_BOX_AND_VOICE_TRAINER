@@ -155,3 +155,12 @@
    **Status:** released as v8 from main (21.10.2026) on Marko's word, "no need to test, just push". GitHub Actions green
    on the test branch; ARP tried on the Pixel 7 (C E G in turn, ARP off brings the chord back); the new AUTO not
    tried on the phone before the release.
+
+## v9 — requested 21.10.2026
+
+> A new feature is 3 levels of loudness of each note. Long press on the button opens up a menu and user can choose from 100%, which is the loudest, or we can make it in dB. 0 dB, then -12 dB and -24 dB, and the last option is off to turn off the note. Long press, 2 seconds.
+
+1. A valve held for 2 seconds opens its loudness menu (a line fills along its foot while it is held); a short tap
+   still opens and closes it.
+2. Four choices: 0 dB (100 %, the loudest), −12 dB, −24 dB, OFF. OFF keeps that note silent even when its valve or a
+   preset opens it. A valve below 0 dB shows its level near its top; every valve's level is kept across restarts.

@@ -21,7 +21,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -53,6 +55,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -152,6 +155,9 @@ class MainActivity : ComponentActivity() {
         }
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         engine.mixer.key = prefs.getInt("key", 0).coerceIn(0, 11)
+        // each valve's loudness (v9), kept like the key: 0 = 0 dB, 1 = −12 dB, 2 = −24 dB, 3 = OFF
+        val levels = IntArray(Shruti.COUNT) { prefs.getInt("level$it", 0).coerceIn(0, Loudness.LABELS.size - 1) }
+        levels.forEachIndexed { v, i -> engine.mixer.setVolume(v, Loudness.gain(i)) }
         val settings = Settings(prefs)
         micGranted.value = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         fixLayout(settings.landscape)
@@ -163,6 +169,8 @@ class MainActivity : ComponentActivity() {
                 askMic = { askMic.launch(Manifest.permission.RECORD_AUDIO) },
                 settings = settings,
                 startTab = prefs.getInt("tab", 0),
+                startLevels = levels,
+                onLevel = { v, i -> prefs.edit { putInt("level$v", i) } },
                 onKey = { prefs.edit { putInt("key", it) } },
                 onTab = { prefs.edit { putInt("tab", it) } },
                 onSettings = { settings.save(prefs); fixLayout(settings.landscape) },
@@ -208,7 +216,8 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 
 @Composable
 private fun ShrutiScreen(
-    mixer: Mixer, ear: Ear, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
+    mixer: Mixer, ear: Ear, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
+    startLevels: IntArray, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
     onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
@@ -232,6 +241,9 @@ private fun ShrutiScreen(
     var arp by remember { mutableStateOf(false) }
     var arpRun by remember { mutableStateOf<ArpRun?>(null) }
     val pal = PALETTES[settings.palette]
+    // each valve's loudness (v9): a long press of two seconds on a valve opens its menu
+    val levels = remember { mutableStateListOf(*startLevels.toTypedArray()) }
+    var levelMenu by remember { mutableStateOf<Int?>(null) }
     val chosenPreset = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }
     // the chosen raga's notes, marked on the valves (v7, Marko: "yes, mark ragas"); Sa' is Sa, so it is marked too
     val marks = chosenPreset?.scale?.takeIf { it.isNotEmpty() }?.let { it.toSet() + 12 } ?: emptySet()
@@ -315,7 +327,7 @@ private fun ShrutiScreen(
             SettingsScreen(settings, pal, onVersion) { inSettings = false; onSettings() }
             return@Box
         }
-        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks) { toggle(it) } }
+        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks, levels, onLongPress = { levelMenu = it }) { toggle(it) } }
         // the chosen card names what sounds (Sus2 and Sus4 on Pa are the same notes; a raga is not a chord)
         val cardName = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
         val notes: @Composable () -> Unit = { if (settings.showNotes) NotesRow(openValves, key, pal, anyOpen, cardName) { closeAll() } }
@@ -375,6 +387,42 @@ private fun ShrutiScreen(
                     box(); notes(); trainer()
                     if (settings.showPresets) presets() else Spacer(Modifier.weight(1f))
                     keys()
+                }
+            }
+        }
+        levelMenu?.let { v ->
+            LevelMenu(v, key, levels[v], pal, onDismiss = { levelMenu = null }) { i ->
+                levels[v] = i; mixer.setVolume(v, Loudness.gain(i)); onLevel(v, i); levelMenu = null
+            }
+        }
+    }
+}
+
+/**
+ * A valve's loudness (v9, Marko: "Long press on the button opens up a menu ... 0 dB, then -12 dB and -24 dB, and the
+ * last option is off"). Over the whole screen; a touch outside the four choices leaves it as it was.
+ */
+@Composable
+private fun LevelMenu(valve: Int, key: Int, current: Int, pal: Palette, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+    BackHandler(onBack = onDismiss)
+    Box(Modifier.fillMaxSize().background(BLACK.copy(alpha = 0.85f)).clickable(onClick = onDismiss), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.width(260.dp).background(BLACK, RoundedCornerShape(22.dp)).border(1.dp, pal.light, RoundedCornerShape(22.dp))
+                .clickable {}.padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            BasicText("${Shruti.NAMES[valve]}  ${Shruti.western(key, valve)}", style = MONO.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = pal.light))
+            BasicText("LOUDNESS", style = MONO.copy(fontSize = 10.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.5f)), modifier = Modifier.padding(top = 4.dp, bottom = 10.dp))
+            Loudness.LABELS.forEachIndexed { i, label ->
+                val on = i == current
+                Box(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp).height(46.dp)
+                        .background(if (on) pal.light else BLACK, RoundedCornerShape(23.dp))
+                        .border(1.dp, if (on) pal.light else pal.faint, RoundedCornerShape(23.dp))
+                        .clickable { onPick(i) },
+                    contentAlignment = Alignment.Center
+                ) {
+                    BasicText(if (i == 0) "$label · 100%" else label, style = MONO.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (on) pal.ink else pal.light))
                 }
             }
         }
@@ -647,8 +695,16 @@ private fun Trainer(
 
 /** The box itself: the thirteen valves, drawn every frame so the glow breathes with the bellows. */
 @Composable
-private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, showNames: Boolean, marks: Set<Int>, onToggle: (Int) -> Unit) {
+private fun ValveBox(
+    mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, showNames: Boolean, marks: Set<Int>, levels: List<Int>,
+    onLongPress: (Int) -> Unit, onToggle: (Int) -> Unit
+) {
     var frame by remember { mutableLongStateOf(0L) }
+    val tap by rememberUpdatedState(onToggle)
+    val hold by rememberUpdatedState(onLongPress)
+    // the valve under a finger and since when, to draw the two seconds filling up
+    var pressed by remember { mutableStateOf<Int?>(null) }
+    var pressedAt by remember { mutableLongStateOf(0L) }
     val tabs = remember { mutableStateListOf<Tab>() }
     val measurer = rememberTextMeasurer()
     LaunchedEffect(Unit) { while (isActive) withFrameNanos { frame = it } }
@@ -656,10 +712,17 @@ private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, 
     // the box, as on the reference page: 680 × 230 of its units, the valves drawn inside with room for their glow
     Canvas(
         Modifier.fillMaxWidth().aspectRatio(BOX_W / BOX_H).pointerInput(Unit) {
-            detectTapGestures { p ->
+            // a tap opens or closes a valve when the finger lifts; held two seconds it opens the loudness menu instead
+            awaitEachGesture {
+                val down = awaitFirstDown()
                 // the upper valves lie over the top of the lower ones, so they are asked first, as they are drawn last
-                val hit = tabs.sortedByDescending { it.upper }.firstOrNull { it.rect.contains(p) }
-                if (hit != null) onToggle(hit.valve)
+                val hit = tabs.sortedByDescending { it.upper }.firstOrNull { it.rect.contains(down.position) } ?: return@awaitEachGesture
+                pressed = hit.valve; pressedAt = System.nanoTime()
+                var ended = false
+                val up = withTimeoutOrNull(LONG_PRESS_MS) { waitForUpOrCancellation().also { ended = true } }
+                pressed = null
+                if (ended) { if (up != null) { up.consume(); tap(hit.valve) } }
+                else { hold(hit.valve); waitForUpOrCancellation()?.consume() }
             }
         }
     ) {
@@ -671,6 +734,19 @@ private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, 
         for (upper in listOf(false, true)) for (vt in laid.filter { it.upper == upper }) {
             val on = open[vt.valve]
             drawValve(vt, on, vt.valve in marks, mixer.level(vt.valve).toFloat(), breath, t, pal)
+            val r0 = vt.rect
+            // the long press filling up along the valve's foot
+            if (pressed == vt.valve) {
+                val k = ((System.nanoTime() - pressedAt) / 1e6 / LONG_PRESS_MS).toFloat().coerceIn(0f, 1f)
+                val y = r0.bottom - r0.width * 0.1f
+                drawLine(pal.halo, Offset(r0.left + r0.width * 0.2f, y), Offset(r0.left + r0.width * (0.2f + 0.6f * k), y), strokeWidth = r0.width * 0.06f, cap = StrokeCap.Round)
+            }
+            // a valve below 0 dB says so near its top
+            val lv = levels.getOrElse(vt.valve) { 0 }
+            if (lv != 0) {
+                val tag = measurer.measure(Loudness.LABELS[lv].removeSuffix(" dB"), MONO.copy(fontSize = if (vt.upper) 8.sp else 10.sp, letterSpacing = 0.sp, color = if (on && lv < 3) pal.ink else pal.halo, fontWeight = FontWeight.Bold))
+                drawText(tag, topLeft = Offset(r0.center.x - tag.size.width / 2f, if (vt.upper) r0.top + r0.height * 0.1f else r0.top + r0.height * 0.08f))
+            }
             if (!showNames) continue
             // the Western note over the Indian name, in the middle of the valve, as on the page
             val ink = if (on) pal.ink else pal.light
@@ -690,6 +766,8 @@ private fun ValveBox(mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, 
 // (Marko's 2:1); five 40 × 100 over the gaps between them, their lower part over the top of the eight. A margin of
 // 20 all round leaves room for the glow.
 private const val BOX_W = 680f
+/** How long a valve is held for its loudness menu (v9: "Long press, 2 seconds"). */
+private const val LONG_PRESS_MS = 2000L
 private const val BOX_H = 230f
 
 /** Where the thirteen valves are, in the page's placement, scaled to the canvas. */

@@ -176,6 +176,28 @@ class ReedsTest {
         assertTrue(peak(m, 0.5) > 0.05f)
     }
 
+    // loudness per valve (v9): 0 dB, −12 dB, −24 dB, OFF
+    @Test fun loudnessIsInDecibels() {
+        assertEquals(1.0, Loudness.gain(0), 1e-9); assertEquals(0.2512, Loudness.gain(1), 1e-4)
+        assertEquals(0.0631, Loudness.gain(2), 1e-4); assertEquals(0.0, Loudness.gain(3), 0.0)
+    }
+    @Test fun offIsSilentEvenWhenOpen() {
+        val m = Mixer(rate); m.setVolume(0, Loudness.gain(3)); m.setOpen(0, true)
+        assertEquals(0f, peak(m, 0.5), 0f); assertEquals(0.0, m.level(0), 0.0)
+    }
+    @Test fun minus24IsQuieter() {
+        val full = Mixer(rate).apply { setOpen(0, true) }; peak(full, 0.5)
+        val soft = Mixer(rate).apply { setVolume(0, Loudness.gain(2)); setOpen(0, true) }; peak(soft, 0.5)
+        val ratio = peak(soft, 0.5) / peak(full, 0.5)
+        assertTrue("ratio $ratio", ratio in 0.04f..0.12f)
+        assertEquals(1.0, soft.level(0), 1e-6)                       // on the screen it glows as fully open
+    }
+    @Test fun aQuietReedStillFadesSlowly() {
+        val m = Mixer(rate); m.setVolume(0, Loudness.gain(2)); m.setOpen(0, true); peak(m, 0.5)
+        m.setOpen(0, false); peak(m, 0.1)
+        assertTrue(m.level(0) > 0.3)                                  // 0.1 s into a 0.35 s fade, still sounding
+    }
+
     @Test fun neverClipsWithEveryValveOpen() {
         val m = Mixer(rate); for (v in 0 until 13) m.setOpen(v, true)
         assertTrue(peak(m, 2.0) < 1f)

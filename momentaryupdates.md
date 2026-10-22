@@ -264,6 +264,10 @@
 
 > "Also find me alternatives to this device on Amazon Germany. You can open Amazon Germany with Chrome extension for Claude, and then you find the same device with metal build. This is plastic build. Power delivery is very important, and it's very important to have only USB-C ports. Find me an alternative." (Marko, 22.10.2026)
 
+> "Please learn from a repository called Elevate Media. When we do this kind of sheets for characters, sheets for props, sheets for spaces, and also pencil sketches, you need to work in this way. Give reference for everything you can even find web images of these devices so everything looks like in real life. You need to write references. Read all the manifest from that Elevate Media." (Marko, 22.10.2026)
+
+10. Images are made the Elevate Media way: reference sheets (characters, props, spaces, pencil sketches), real web photos of the devices as references, and the references written down.
+
 9. Alternatives on amazon.de: a metal (aluminium) hub, Power Delivery pass-through, only USB-C ports.
 
 8. On the page: play and charge at once, the StarTech HB31CM4CPD3 hub between the phone, the MIDI keyboard and a USB-C charger, with its diagram.

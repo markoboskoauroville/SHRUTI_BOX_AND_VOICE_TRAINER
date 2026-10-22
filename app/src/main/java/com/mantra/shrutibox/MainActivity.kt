@@ -207,6 +207,8 @@ class MainActivity : ComponentActivity() {
                 startLevels = levels,
                 startCustom = loadCustom(prefs),
                 onCustom = { saveCustom(prefs, it) },
+                startSeq = prefs.getString("seqOrder", "").orEmpty().split(",").mapNotNull { it.toIntOrNull() },
+                onSeq = { prefs.edit { putString("seqOrder", it.joinToString(",")) } },
                 onLevel = { v, i -> prefs.edit { putInt("level$v", i) } },
                 onKey = { prefs.edit { putInt("key", it) } },
                 onOctave = { prefs.edit { putInt("octave", it) } },
@@ -296,7 +298,7 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 @Composable
 private fun ShrutiScreen(
     mixer: Mixer, ear: Ear, midi: Midi, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
-    startLevels: IntArray, startCustom: List<Preset>, onCustom: (List<Preset>) -> Unit, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onOctave: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
+    startLevels: IntArray, startCustom: List<Preset>, onCustom: (List<Preset>) -> Unit, startSeq: List<Int>, onSeq: (List<Int>) -> Unit, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onOctave: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
     onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit, onClose: () -> Unit, onBackground: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
@@ -312,7 +314,9 @@ private fun ShrutiScreen(
     val customTab = tabs.size - 1
     var editing by remember { mutableStateOf<Int?>(null) }
     var seqMode by remember { mutableStateOf(false) }
-    val seqOrder = remember { mutableStateListOf<Int>() }
+    // v27: the sequencer's numbers are kept across restarts, like the presets they point at
+    val seqOrder = remember { mutableStateListOf(*startSeq.filter { it in startCustom.indices }.distinct().toTypedArray()) }
+    LaunchedEffect(seqOrder.toList()) { onSeq(seqOrder.toList()) }
     var seqRun by remember { mutableStateOf<SeqRun?>(null) }
     // v17: the step that sounds now (running or pressed on a pad), for the Launchkey's pad lights
     var seqStep by remember { mutableStateOf<Int?>(null) }

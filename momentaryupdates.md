@@ -454,3 +454,11 @@
 
 **Status:** v26 tested on the Pixel 7, 22.10.2026: a valve opened, Home pressed → the launcher in front, ShrutiService foreground (type media playback, its notification with Stop), the app's AudioTrack still "started"; ✕ beside the gear → the app closed, no service left, no audio player, the Launchkey released (DAW mode off, "closed"). The sequencer and AUTO now run on their own 8 ms clock instead of screen frames, and the pads are lit from it. Marko confirmed by hand: "I can confirm it works in the background" (the keyboard playing with the app out of focus). (POST_NOTIFICATIONS granted by adb for the test.)
 
+## v27 — 22.10.2026: the sequencer's numbers kept
+
+> "all unfinished tasks: please finish" (Marko, 22.10.2026)
+
+1. The SEQ numbers (which CUSTOM preset is step 1, 2 …) are kept across restarts, as the presets are; the Launchkey's pads light again at once after a restart.
+
+**Status:** built.
+

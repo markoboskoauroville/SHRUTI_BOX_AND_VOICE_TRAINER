@@ -285,3 +285,11 @@
 
 **Status:** asked.
 
+## v15 — requested 22.10.2026: the octave on every valve
+
+> "Please also fix my ShrutiBox. When I switch between octaves, I need to see on the keyboard itself that there is C1, C2, and so on. So every name of the note you can add it to only European notation: SA RE GA MA PA DA NI SA. I can stay so I know where I am by just looking at my keyboard. I don't need to look down there in the switching part at the bottom of the page." (Marko, 22.10.2026)
+
+1. Each valve's Western name carries its octave number (C3, D3 … C4 for Sa'), moving with ◀ ▶ and with the keyboard; the Indian names stay as they are.
+
+**Status:** asked.
+

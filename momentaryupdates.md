@@ -301,3 +301,12 @@
 
 **Status:** asked.
 
+## The donation bowl — requested 22.10.2026
+
+> "please build in donation Tibetan bubble. We are going to kind of emulate the donation after my sound bots. When we put Tibetan bubble to donate to me mantra for my work, it needs to be connected to my account on Revolut and donations come directly there to my Revolut account. Can we build this so right in the manifest when Marko Mantra asked for donation, there will be Tibetan bowl image and user can click and put the money inside to help the struggling artist" (Marko, 22.10.2026)
+
+1. A Tibetan singing bowl on the page, as after a sound bath: a tap on it rings the bowl and opens Marko's Revolut payment link, so the money goes straight to his Revolut account.
+2. In the manifest: whenever Marko asks for a donation on a page, this bowl is used.
+
+**Status:** asked; waiting for his revolut.me link.
+

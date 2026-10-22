@@ -319,3 +319,11 @@
 
 **Status:** composed 22.10.2026 in the Create post dialog on his profile (Chrome): plain text in his style, English then Croatian, the page link, the app screenshot (the Major chord sounding). Not posted. The audience was "Only me", left for him to change.
 
+## The download above the bowl — requested 22.10.2026
+
+> "now fix the Shruti box page by putting a download link at the bottom, just above the Tibetan ball. People need to scroll down to find it themselves" (Marko, 22.10.2026)
+
+1. At the bottom of the page the download comes first, then the Tibetan bowl, so whoever scrolls to the end meets the download before the bowl.
+
+**Status:** asked.
+

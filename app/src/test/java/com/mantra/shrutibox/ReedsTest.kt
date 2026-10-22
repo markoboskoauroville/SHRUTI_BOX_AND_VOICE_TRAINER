@@ -36,6 +36,20 @@ class ReedsTest {
     @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveInWindow(2, 0, 50)); assertEquals(null, Shruti.valveInWindow(2, 0, 48)) }
     @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 60)); assertEquals(2, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(null, Shruti.octaveFor(0, 120)) }
     @Test fun noteFreqIsTheValvesPitch() { assertEquals(Shruti.freq(0, 0), Shruti.noteFreq(48), 1e-9); assertEquals(Shruti.freq(0, 12) * 2, Shruti.noteFreq(72), 1e-9) }
+    // v13: the trainer's walk through its range, in MIDI notes
+    @Test fun walkC3toC4IsTheMajorScale() = assertEquals(listOf(48, 50, 52, 53, 55, 57, 59, 60), AutoRun.walk(48, 0, AutoRun.MAJOR, 60))
+    @Test fun walkCrossesOctaves() = assertEquals(listOf(55, 57, 59, 60, 62, 64), AutoRun.walk(55, 0, AutoRun.MAJOR, 64))
+    @Test fun walkStartsOffTheScale() = assertEquals(listOf(49, 50, 52), AutoRun.walk(49, 0, AutoRun.MAJOR, 52))
+    @Test fun walkInD() = assertEquals(listOf(50, 52, 54), AutoRun.walk(50, 2, AutoRun.MAJOR, 54))
+    @Test fun firstInRangeSkipsOffScale() { assertEquals(48, AutoRun.firstInRange(48, 0, AutoRun.MAJOR)); assertEquals(50, AutoRun.firstInRange(49, 0, AutoRun.MAJOR)) }
+    @Test fun seqStepsOnTheBeat() { val q = SeqRun(listOf(listOf(0, 4, 7), listOf(5, 9, 12)), 60); assertFalse(q.tick(0.0)); assertFalse(q.tick(0.99)); assertTrue(q.tick(1.0)); assertEquals(listOf(5, 9, 12), q.valves); assertTrue(q.tick(2.0)); assertEquals(listOf(0, 4, 7), q.valves) }
+    @Test fun seqFollowsANewBpm() { val q = SeqRun(listOf(listOf(0), listOf(7)), 60); q.tick(0.0); q.bpm = 120; assertTrue(q.tick(0.5)) }
+    @Test fun crossfadeSlowsTheSwell() {
+        val quick = Mixer(rate); quick.setOpen(0, true); peak(quick, 0.3)
+        val slow = Mixer(rate); slow.crossfadeS = 2.0; slow.setOpen(0, true); peak(slow, 0.3)
+        assertTrue(slow.level(0) < 0.3 && quick.level(0) > 0.99)
+    }
+    @Test fun eightyEightKeys() = assertEquals(88, AutoRun.PIANO.count())
     @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
     @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }
     @Test fun fullVelocityIsFull() = assertEquals(1.0, Loudness.velocity(127), 1e-9)

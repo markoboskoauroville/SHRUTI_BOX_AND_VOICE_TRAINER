@@ -60,6 +60,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -119,7 +120,7 @@ private val WARM = Palette(
 private val PALETTES = listOf(COLD, WARM)
 
 /** version-visible.md §3: the version, now in settings, opens the latest build. */
-private const val LATEST = "https://github.com/markoboskoauroville/MANTRA_SHRUTI_BOX/releases/latest"
+private const val LATEST = "https://github.com/markoboskoauroville/SHRUTI_BOX_AND_VOICE_TRAINER/releases/latest"
 private const val PREFS = "shruti"
 
 /** What settings hold, every one kept in the preferences. */
@@ -131,8 +132,17 @@ private class Settings(prefs: SharedPreferences) {
     var showKeys by mutableStateOf(prefs.getBoolean("showKeys", true))
     var showNames by mutableStateOf(prefs.getBoolean("showNames", true))
     var showTrainer by mutableStateOf(prefs.getBoolean("showTrainer", true))
+    // v13: the voice trainer's difficulty (± percent of a semitone) and its range on the 88 keys; the sequencer's speed
+    var within by mutableIntStateOf(prefs.getInt("within", 20).let { if (it in AutoRun.DIFFICULTIES) it else 20 })
+    var rangeLow by mutableIntStateOf(prefs.getInt("rangeLow", 48).coerceIn(AutoRun.PIANO.first, AutoRun.PIANO.last))
+    var rangeHigh by mutableIntStateOf(prefs.getInt("rangeHigh", 60).coerceIn(AutoRun.PIANO.first, AutoRun.PIANO.last))
+    var bpm by mutableIntStateOf(prefs.getInt("bpm", 30).coerceIn(SeqRun.BPM.first, SeqRun.BPM.last))
+    var xfade by mutableStateOf(prefs.getBoolean("xfade", true))
+    var xfadeS by mutableStateOf(prefs.getFloat("xfadeS", 1.5f).coerceIn(0.2f, 10f))
 
     fun save(prefs: SharedPreferences) = prefs.edit {
+        putInt("within", within); putInt("rangeLow", rangeLow); putInt("rangeHigh", rangeHigh); putInt("bpm", bpm)
+        putBoolean("xfade", xfade); putFloat("xfadeS", xfadeS)
         putInt("palette", palette); putBoolean("landscape", landscape); putBoolean("showNotes", showNotes)
         putBoolean("showPresets", showPresets); putBoolean("showKeys", showKeys); putBoolean("showNames", showNames)
         putBoolean("showTrainer", showTrainer)
@@ -174,6 +184,8 @@ class MainActivity : ComponentActivity() {
                 settings = settings,
                 startTab = prefs.getInt("tab", 0),
                 startLevels = levels,
+                startCustom = loadCustom(prefs),
+                onCustom = { saveCustom(prefs, it) },
                 onLevel = { v, i -> prefs.edit { putInt("level$v", i) } },
                 onKey = { prefs.edit { putInt("key", it) } },
                 onOctave = { prefs.edit { putInt("octave", it) } },
@@ -195,6 +207,20 @@ class MainActivity : ComponentActivity() {
         requestedOrientation = if (landscape) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
 
+    // v13: his own presets, a name and the valves (relative to Sa, so they move with the key), kept as JSON
+    private fun loadCustom(prefs: SharedPreferences): List<Preset> = runCatching {
+        val a = org.json.JSONArray(prefs.getString("custom", "[]"))
+        (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i); val v = o.getJSONArray("valves")
+            customPreset(o.getString("name"), (0 until v.length()).map { v.getInt(it) })
+        }
+    }.getOrDefault(emptyList())
+    private fun saveCustom(prefs: SharedPreferences, list: List<Preset>) {
+        val a = org.json.JSONArray()
+        list.forEach { p -> a.put(org.json.JSONObject().put("name", p.name).put("valves", org.json.JSONArray(p.valves))) }
+        prefs.edit { putString("custom", a.toString()) }
+    }
+
     override fun onStart() { super.onStart(); engine.start(); midi.start() }
     override fun onStop() { ear.listen(false); midi.stop(); engine.stop(); super.onStop() }
 }
@@ -208,8 +234,15 @@ private fun openLatest(c: Context) {
 }
 
 /** The valves of the card [chosen], to sound again when ▶ SCALE ends. */
-private fun chosenPresetValves(chosen: Pair<Int, Int>?): List<Int> =
-    chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i)?.valves }.orEmpty()
+private fun chosenPresetValves(tabs: List<PresetTab>, chosen: Pair<Int, Int>?): List<Int> =
+    chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i)?.valves }.orEmpty()
+
+/** A CUSTOM card (v13): his name, the notes it opens. */
+private fun customPreset(name: String, valves: List<Int>) =
+    Preset(name, "", valves.sorted().joinToString(" ") { Shruti.NAMES[it.coerceIn(0, Shruti.COUNT - 1)] }, "", valves.sorted())
+private const val CUSTOM_INTRO = "Your own. The save icon beside the notes keeps what sounds; ✎ renames or deletes. SEQ numbers the cards, ▶ plays them in turn, one beat each."
+/** The page's tabs and CUSTOM after them. */
+private fun allTabs(custom: List<Preset>) = Presets.TABS + PresetTab("CUSTOM", CUSTOM_INTRO, custom)
 
 /** The tuner's last reading, handed from the trainer to the auto walk without a recomposition per frame. */
 private class Readout { var percent: Double? = null }
@@ -222,7 +255,7 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 @Composable
 private fun ShrutiScreen(
     mixer: Mixer, ear: Ear, midi: Midi, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
-    startLevels: IntArray, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onOctave: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
+    startLevels: IntArray, startCustom: List<Preset>, onCustom: (List<Preset>) -> Unit, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onOctave: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
     onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
@@ -230,7 +263,15 @@ private fun ShrutiScreen(
     // v12: whole octaves the box is moved, by ◀ ▶ or by the keyboard playing in another octave
     var octave by remember { mutableIntStateOf(mixer.octave) }
     fun moveOctave(o: Int) { val c = o.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE); if (c != octave) { octave = c; mixer.octave = c; onOctave(c) } }
-    var tab by remember { mutableIntStateOf(startTab.coerceIn(0, Presets.TABS.size - 1)) }
+    // v13: CUSTOM, his own presets, the tab after the page's; editing is the card being named, seq its sequencer
+    val custom = remember { mutableStateListOf(*startCustom.toTypedArray()) }
+    val tabs = allTabs(custom.toList())
+    val customTab = tabs.size - 1
+    var editing by remember { mutableStateOf<Int?>(null) }
+    var seqMode by remember { mutableStateOf(false) }
+    val seqOrder = remember { mutableStateListOf<Int>() }
+    var seqRun by remember { mutableStateOf<SeqRun?>(null) }
+    var tab by remember { mutableIntStateOf(startTab.coerceIn(0, tabs.size - 1)) }
     // the card that was tapped, as tab and place: ten ragas share Sa Pa Sa', so the valves alone cannot say which
     var chosen by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var inSettings by remember { mutableStateOf(false) }
@@ -251,37 +292,50 @@ private fun ShrutiScreen(
     val pal = PALETTES[settings.palette]
     // each valve's loudness (v10): a short tap on its button beside RESET steps it full → half → a line → full
     val levels = remember { mutableStateListOf(*startLevels.toTypedArray()) }
-    val chosenPreset = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }
+    val chosenPreset = chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i) }
     // the chosen raga's notes, marked on the valves (v7, Marko: "yes, mark ragas"); Sa' is Sa, so it is marked too
     val marks = chosenPreset?.scale?.takeIf { it.isNotEmpty() }?.let { it.toSet() + 12 } ?: emptySet()
 
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
-    fun hushAll() { scaleRun = null; arpRun = null; mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
+    fun hushAll() { scaleRun = null; arpRun = null; seqRun = null; mixer.hush(); for (i in 0 until Shruti.COUNT) open[i] = false }
     fun openValves(): List<Int> = (0 until Shruti.COUNT).filter { open[it] }
     fun sound(valves: Collection<Int>) { mixer.closeAll(); for (i in 0 until Shruti.COUNT) { open[i] = i in valves; mixer.setOpen(i, open[i]) } }
-    fun autoPlay(r: AutoRun) { hushAll(); open[r.note] = true; mixer.setOpen(r.note, true); target = r.note; armed = false }
-    fun startAuto(v: Int) {
+    // v13: the walk is in MIDI notes through the trainer's range; each note moves the box to its octave and opens its
+    // valve (a note beyond ◀ ▶'s reach sounds as a free reed), and the trainer listens for its pitch class
+    fun pitchClass(note: Int) = Math.floorMod(note - 48 - key, 12)
+    fun autoPlay(r: AutoRun) {
+        hushAll()
+        Shruti.octaveFor(key, r.note)?.let { moveOctave(it) }
+        val v = Shruti.valveInWindow(key, octave, r.note)
+        if (v != null) { open[v] = true; mixer.setOpen(v, true) } else mixer.setNote(r.note, true)
+        target = v ?: pitchClass(r.note); armed = false
+    }
+    fun autoScale() = liveScaleOrMajor()
+    fun startAuto(startNote: Int) {
         if (!micGranted) askMic()
-        arpRun = null
-        // the chosen raga's notes, or Sa Re Ga ma Pa Dha Ni when no raga is chosen
-        val scale = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i)?.scale }?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR
-        val r = AutoRun(AutoRun.from(v, scale)); run = r; autoDone = false; step++; autoPlay(r)
+        arpRun = null; seqRun = null
+        val r = AutoRun(AutoRun.walk(startNote, key, autoScale(), settings.rangeHigh), within = settings.within.toDouble())
+        run = r; autoDone = false; step++; autoPlay(r)
     }
     LaunchedEffect(Unit) {
         while (isActive) withFrameNanos { now ->
             val sr = scaleRun
             if (sr != null && sr.tick(now / 1e9)) {
-                if (sr.done) { scaleRun = null; sound(chosenPresetValves(chosen)) } else sound(listOf(sr.note))
+                if (sr.done) { scaleRun = null; sound(chosenPresetValves(tabs, chosen)) } else sound(listOf(sr.note))
             }
             val ar = arpRun
             if (ar != null && ar.tick(now / 1e9)) sound(listOf(ar.note))
+            val q = seqRun
+            // XFADE (v13): while the sequencer runs, one chord fades out as the next fades in, over his time
+            mixer.crossfadeS = if (q != null && settings.xfade) settings.xfadeS.toDouble() else 0.0
+            if (q != null) { q.bpm = settings.bpm; if (q.tick(now / 1e9)) sound(q.valves) }
             val r = run
             if (r != null && r.tick(now / 1e9, readout.percent)) {
                 when (r.phase) {
                     AutoRun.Phase.PLAY -> autoPlay(r)
-                    AutoRun.Phase.SING -> { hushAll(); target = r.note; readout.percent = null; armed = true }
+                    AutoRun.Phase.SING -> { hushAll(); target = Shruti.valveInWindow(key, octave, r.note) ?: pitchClass(r.note); readout.percent = null; armed = true }
                     AutoRun.Phase.DONE -> { armed = false; run = null; autoDone = true }
                 }
                 step++
@@ -292,14 +346,15 @@ private fun ShrutiScreen(
     // the shruti and the voice take turns (Marko, v6): opening a valve or a preset switches VOICE off
     fun toggle(v: Int) {
         // while AUTO runs, a tapped valve is the new beginning of the walk (v8)
-        if (auto) { startAuto(v); return }
-        scaleRun = null; arpRun = null
+        if (auto) { startAuto(Shruti.saNote(key, octave) + v); return }
+        scaleRun = null; arpRun = null; seqRun = null
         val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false }
     }
-    fun closeAll() { scaleRun = null; arpRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
+    fun closeAll() { scaleRun = null; arpRun = null; seqRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     /** ARP on or off; a card that sounds changes at once between its chord and its arpeggio. */
     // read the chosen card at the moment of the tap, not as it was when the button was composed
-    fun liveChosen(): Preset? = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }
+    fun liveChosen(): Preset? = chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i) }
+    fun liveScaleOrMajor(): List<Int> = liveChosen()?.scale?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR
     fun toggleArp() {
         arp = !arp
         val p = liveChosen() ?: return
@@ -316,7 +371,9 @@ private fun ShrutiScreen(
         val sr = ScaleRun(p.walk); scaleRun = sr; sound(listOf(sr.note)); target = null
     }
     fun choose(t: Int, i: Int) {
-        val p = Presets.TABS[t].presets[i]
+        // v13: with SEQ on, a CUSTOM card gets the next number (or loses it) instead of sounding
+        if (t == customTab && seqMode) { if (i in seqOrder) seqOrder.remove(i) else seqOrder.add(i); return }
+        val p = tabs[t].presets[i]
         val again = chosen == (t to i)
         run = null
         closeAll()
@@ -336,7 +393,7 @@ private fun ShrutiScreen(
     val sounding = remember { HashMap<Int, Int>() }                  // a key that is down → its valve, or -1 for a free reed
     val onMidi by rememberUpdatedState<(Int, Int, Int) -> Unit> { ch, note, vel ->
         val pad = note - 36
-        if (ch == 9 && pad in 0..15) { if (vel > 0 && pad < Presets.TABS[tab].presets.size) choose(tab, pad) }
+        if (ch == 9 && pad in 0..15) { if (vel > 0 && pad < tabs[tab].presets.size) choose(tab, pad) }
         else if (vel > 0) {
             if (Shruti.valveInWindow(key, octave, note) == null && sounding.isEmpty() && !auto) Shruti.octaveFor(key, note)?.let { moveOctave(it) }
             val v = Shruti.valveInWindow(key, octave, note)
@@ -344,7 +401,7 @@ private fun ShrutiScreen(
             else {
                 sounding[note] = v
                 mixer.setVolume(v, Loudness.gain(levels[v]) * Loudness.velocity(vel))
-                when { auto -> startAuto(v); !open[v] -> toggle(v) }  // while AUTO runs a key is the walk's new beginning
+                when { auto -> startAuto(note); !open[v] -> toggle(v) }  // while AUTO runs a key is the walk's new beginning
             }
         } else {
             when (val v = sounding.remove(note)) {
@@ -356,6 +413,34 @@ private fun ShrutiScreen(
     }
     DisposableEffect(midi) { midi.onNote = { ch, note, vel -> onMidi(ch, note, vel) }; onDispose { midi.onNote = null } }
 
+    // v13 CUSTOM: the save icon keeps what sounds as a new card and asks its name at once
+    fun saveCustom() {
+        val v = (0 until Shruti.COUNT).filter { open[it] }
+        if (v.isEmpty()) return
+        custom.add(customPreset("Custom ${custom.size + 1}", v)); onCustom(custom.toList())
+        tab = customTab; onTab(customTab); editing = custom.size - 1
+    }
+    fun renameCustom(i: Int, name: String) {
+        val p = custom.getOrNull(i) ?: return
+        custom[i] = customPreset(name.trim().ifEmpty { p.name }, p.valves); onCustom(custom.toList())
+    }
+    fun deleteCustom(i: Int) {
+        if (i !in custom.indices) return
+        if (chosen?.first == customTab) closeAll()
+        seqRun = null
+        custom.removeAt(i); onCustom(custom.toList())
+        // the numbers after it move down one place with it
+        val kept = seqOrder.filter { it != i }.map { if (it > i) it - 1 else it }
+        seqOrder.clear(); seqOrder.addAll(kept)
+    }
+    fun toggleSequence() {
+        if (seqRun != null) { seqRun = null; closeAll(); return }
+        val steps = seqOrder.mapNotNull { custom.getOrNull(it)?.valves }
+        if (steps.isEmpty()) return
+        run = null; auto = false; scaleRun = null; arpRun = null; chosen = null
+        val q = SeqRun(steps, settings.bpm); sound(q.valves); seqRun = q
+    }
+
     BackHandler(enabled = inSettings) { inSettings = false; onSettings() }
 
     Box(Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout).padding(horizontal = 10.dp, vertical = 10.dp)) {
@@ -365,31 +450,37 @@ private fun ShrutiScreen(
         }
         val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks, levels) { toggle(it) } }
         // the chosen card names what sounds (Sus2 and Sus4 on Pa are the same notes; a raga is not a chord)
-        val cardName = chosen?.let { (t, i) -> Presets.TABS.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
+        val cardName = chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
         // the buttons beside RESET: the notes that sound; while ARP runs, every note of its card, not the one passing by
         val noteButtons = (openValves + (if (arpRun != null) chosenPreset?.valves.orEmpty() else emptyList())).distinct().sorted()
         val notes: @Composable () -> Unit = {
-            if (settings.showNotes) NotesRow(openValves, noteButtons, levels, key, pal, anyOpen, cardName, onLevel = { v ->
+            if (settings.showNotes) NotesRow(openValves, noteButtons, levels, key, pal, anyOpen, cardName, onSave = { saveCustom() }, onLevel = { v ->
                 val i = Loudness.next(levels[v]); levels[v] = i; mixer.setVolume(v, Loudness.gain(i)); onLevel(v, i)
             }) { closeAll() }
         }
         val keys: @Composable () -> Unit = { if (settings.showKeys) OctaveRow(octave, key, pal) { moveOctave(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
-            PresetPanel(tab, chosen, openValves, key, pal, scaleRun != null, arp, arpRun != null, onArp = { toggleArp() }, onScale = { playScale() }, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
+            PresetPanel(tabs, tab, chosen, openValves, key, pal, scaleRun != null, arp, arpRun != null, onArp = { toggleArp() }, onScale = { playScale() }, onTab = { tab = it; onTab(it) },
+                seq = SeqUi(seqMode, seqOrder.toList(), seqRun != null, seqRun?.let { seqOrder.getOrNull(it.index % maxOf(1, seqOrder.size)) }, settings.bpm,
+                    settings.xfade, settings.xfadeS,
+                    onMode = { seqMode = !seqMode }, onPlay = { toggleSequence() }, onBpm = { settings.bpm = it.coerceIn(SeqRun.BPM.first, SeqRun.BPM.last); onSettings() },
+                    onXfade = { settings.xfade = !settings.xfade; onSettings() }, onXfadeS = { settings.xfadeS = it.coerceIn(0.2f, 10f); onSettings() }),
+                onEdit = { editing = it }) { t, i -> choose(t, i) }
         }
         val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
         val autoStatus = if (!auto) null else run?.let { r ->
-            val n = "${Shruti.NAMES[r.note]} ${Shruti.western(key, r.note)}"
+            val n = "${Shruti.NAMES[pitchClass(r.note)]} ${noteName(r.note)}"
             "${r.index + 1}/${r.notes.size} " + (if (r.phase == AutoRun.Phase.PLAY) "listen $n" else "sing $n")
         } ?: if (autoDone) "scale complete · AUTO again to stop" else "starting"
         if (step < 0) Unit                                          // step only makes the status recompose
         val trainer: @Composable () -> Unit = {
-            if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted, auto, autoStatus, readout,
+            if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted, auto, autoStatus, readout, settings.within,
+                onWithin = { settings.within = it; onSettings() },
                 onAuto = {
                     // AUTO starts at once from the beginning of the scale; AUTO again stops it (v8)
                     auto = !auto
                     if (!auto) { run = null; autoDone = false; hushAll(); armed = false }
-                    else startAuto((liveChosen()?.scale?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR).min())
+                    else startAuto(AutoRun.firstInRange(settings.rangeLow, key, liveScaleOrMajor()))
                 }) {
                 // VOICE stops the shruti at once: the microphone must hear the singer, never the box
                 if (!armed || !micGranted) { hushAll(); chosen = null }
@@ -397,6 +488,13 @@ private fun ShrutiScreen(
             }
         }
 
+        // v13: naming a CUSTOM card, over the whole screen; DELETE removes it
+        editing?.let { i ->
+            custom.getOrNull(i)?.let { p ->
+                NameDialog(p.name, pal, onDone = { renameCustom(i, it); editing = null }, onDelete = { deleteCustom(i); editing = null }) { editing = null }
+                return@Box
+            }
+        }
         BoxWithConstraints(Modifier.fillMaxSize()) {
             if (maxWidth > maxHeight && !settings.showPresets) {
                 // landscape without presets: the box alone in the middle, as wide as the height leaves room for
@@ -498,7 +596,7 @@ private fun OctaveRow(octave: Int, key: Int, pal: Palette, onOctave: (Int) -> Un
 @Composable
 private fun NotesRow(
     openValves: List<Int>, buttons: List<Int>, levels: List<Int>, key: Int, pal: Palette, anyOpen: Boolean, cardName: String?,
-    onLevel: (Int) -> Unit, onReset: () -> Unit
+    onSave: () -> Unit, onLevel: (Int) -> Unit, onReset: () -> Unit
 ) {
     Row(Modifier.fillMaxWidth().padding(top = 6.dp, start = 6.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(
@@ -513,6 +611,8 @@ private fun NotesRow(
             if (buttons.isEmpty()) BasicText("—", style = MONO.copy(fontSize = 12.sp, color = pal.light.copy(alpha = 0.85f)))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (v in buttons) LevelButton(v, levels.getOrElse(v) { 0 }, key, pal) { onLevel(v) }
+                // v13: after the notes, the save icon keeps them as a CUSTOM card
+                if (openValves.isNotEmpty()) SaveIcon(pal, onSave)
             }
             val named = cardName ?: Shruti.detect(key, openValves)
             if (named.isNotEmpty()) BasicText(named, style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = pal.halo, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
@@ -543,11 +643,12 @@ private fun LevelButton(valve: Int, level: Int, key: Int, pal: Palette, onTap: (
 /** The page's five tabs of presets and their cards. A card lights while it is the chosen one and its valves sound. */
 @Composable
 private fun ColumnScope.PresetPanel(
-    tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, scaling: Boolean, arp: Boolean, arping: Boolean,
-    onArp: () -> Unit, onScale: () -> Unit, onTab: (Int) -> Unit, onChoose: (Int, Int) -> Unit
+    tabs: List<PresetTab>, tab: Int, chosen: Pair<Int, Int>?, openValves: List<Int>, key: Int, pal: Palette, scaling: Boolean, arp: Boolean, arping: Boolean,
+    onArp: () -> Unit, onScale: () -> Unit, onTab: (Int) -> Unit, seq: SeqUi, onEdit: (Int) -> Unit, onChoose: (Int, Int) -> Unit
 ) {
+    val isCustom = tab == tabs.size - 1
     Row(Modifier.padding(top = 14.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.weight(1f)) { Pills(Presets.TABS.map { it.title }, tab, pal, height = 36, fontSize = 10, onPick = onTab) }
+        Box(Modifier.weight(1f)) { Pills(tabs.map { it.title }, tab, pal, height = 36, fontSize = 10, onPick = onTab) }
         Spacer(Modifier.width(6.dp))
         // ARP (v8): a switch of its own, beside the tabs; lit while it is on
         Box(
@@ -559,11 +660,13 @@ private fun ColumnScope.PresetPanel(
             contentAlignment = Alignment.Center
         ) { BasicText("ARP", style = MONO.copy(color = if (arp) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 10.sp, letterSpacing = 0.5.sp)) }
     }
-    val current = Presets.TABS[tab]
+    val current = tabs[tab]
+    if (isCustom) SequencerBar(seq, pal)
     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())) {
         BasicText(current.intro, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)), modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp))
         current.presets.forEachIndexed { i, p ->
-            val sounding = chosen == (tab to i) && (openValves == p.valves.sorted() || scaling || arping)
+            val number = if (isCustom) seq.order.indexOf(i).takeIf { it >= 0 }?.plus(1) else null
+            val sounding = (chosen == (tab to i) && (openValves == p.valves.sorted() || scaling || arping)) || (isCustom && seq.playingCard == i)
             Column(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp)
                     .background(if (sounding) pal.cardOn else BLACK, RoundedCornerShape(16.dp))
@@ -572,9 +675,20 @@ private fun ColumnScope.PresetPanel(
                     .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    // v13: the sequencer's number, given by the taps in SEQ, as the Chrome profiles in Opening and Closing
+                    if (isCustom && (seq.mode || number != null)) Box(
+                        Modifier.padding(end = 10.dp).size(26.dp)
+                            .background(if (number != null) pal.light else BLACK, RoundedCornerShape(6.dp))
+                            .border(1.dp, if (number != null) pal.light else pal.line, RoundedCornerShape(6.dp)),
+                        contentAlignment = Alignment.Center
+                    ) { BasicText(number?.toString() ?: "·", style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, fontWeight = FontWeight.Bold, color = if (number != null) pal.ink else pal.line)) }
                     BasicText(p.name, style = MONO.copy(fontSize = 14.sp, letterSpacing = 0.5.sp, fontWeight = FontWeight.Bold, color = if (sounding) pal.core else pal.light))
                     Spacer(Modifier.weight(1f))
                     BasicText(p.valves.sorted().joinToString(" ") { Shruti.western(key, it) }, style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.halo))
+                    // v13: ✎ names or deletes a CUSTOM card (a button to see, not a hidden long press)
+                    if (isCustom) Box(Modifier.padding(start = 6.dp).size(36.dp).clickable { onEdit(i) }, contentAlignment = Alignment.Center) {
+                        BasicText("✎", style = MONO.copy(fontSize = 16.sp, letterSpacing = 0.sp, color = pal.light))
+                    }
                     // the chosen raga plays its aroha and avaroha; a second tap stops it and the drone returns
                     if (sounding && p.up.isNotEmpty()) Box(
                         Modifier.padding(start = 10.dp).height(30.dp)
@@ -607,6 +721,12 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
         // v12: the key moved here from under the box, where ◀ ▶ are now
         BasicText("KEY", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         Pills(Shruti.KEYS, key, pal, height = 40, fontSize = 10, onPick = onKey)
+        // v13: the voice trainer's difficulty and range (a long press on AUTO sets the difficulty too)
+        BasicText("VOICE TRAINER · DIFFICULTY", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        Pills(AutoRun.DIFFICULTIES.map { "±$it %" }, AutoRun.DIFFICULTIES.indexOf(s.within), pal, height = 40, fontSize = 11) { s.within = AutoRun.DIFFICULTIES[it] }
+        BasicText("VOICE TRAINER · RANGE (88 KEYS, A0 TO C8)", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        RangeStepper("FROM", s.rangeLow, pal) { s.rangeLow = it.coerceIn(AutoRun.PIANO.first, s.rangeHigh) }
+        RangeStepper("TO", s.rangeHigh, pal) { s.rangeHigh = it.coerceIn(s.rangeLow, AutoRun.PIANO.last) }
         BasicText("LAYOUT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         Pills(listOf("PORTRAIT", "LANDSCAPE"), if (s.landscape) 1 else 0, pal) { s.landscape = it == 1 }
         BasicText("SHOW", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
@@ -655,8 +775,10 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
 @Composable
 private fun Trainer(
     mixer: Mixer, ear: Ear, target: Int?, key: Int, pal: Palette, armed: Boolean, auto: Boolean, autoStatus: String?,
-    readout: Readout, onAuto: () -> Unit, onArm: () -> Unit
+    readout: Readout, within: Int, onWithin: (Int) -> Unit, onAuto: () -> Unit, onArm: () -> Unit
 ) {
+    // v13 (Marko: "A long press on auto sets its difficulty"): the three tolerances, shown under the row until one is chosen
+    var choosing by remember { mutableStateOf(false) }
     val live by rememberUpdatedState(armed && target != null)
     val goal by rememberUpdatedState(target?.let { Shruti.freq(key, it) })
     var listening by remember { mutableStateOf(false) }
@@ -708,10 +830,15 @@ private fun Trainer(
             Modifier.height(40.dp)
                 .background(if (auto) pal.light else BLACK, RoundedCornerShape(20.dp))
                 .border(1.dp, if (auto) pal.light else pal.faint, RoundedCornerShape(20.dp))
-                .clickable(onClick = onAuto)
+                .pointerInput(Unit) { detectTapGestures(onLongPress = { choosing = true }, onTap = { onAuto() }) }
                 .padding(horizontal = 14.dp),
             contentAlignment = Alignment.Center
-        ) { BasicText("AUTO", style = MONO.copy(color = if (auto) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 12.sp)) }
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                BasicText("AUTO", style = MONO.copy(color = if (auto) BLACK else pal.light.copy(alpha = 0.75f), fontSize = 12.sp))
+                BasicText("±$within", style = MONO.copy(color = if (auto) BLACK else pal.light.copy(alpha = 0.5f), fontSize = 8.sp, letterSpacing = 0.sp))
+            }
+        }
         Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
             Canvas(Modifier.fillMaxWidth().height(22.dp)) {
@@ -751,6 +878,99 @@ private fun Trainer(
                 style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = if (p != null && abs(p) < 5) pal.halo else pal.light.copy(alpha = 0.8f), fontWeight = if (p != null) FontWeight.Bold else FontWeight.Normal),
                 modifier = Modifier.padding(top = 4.dp)
             )
+        }
+    }
+    if (choosing) Column(Modifier.fillMaxWidth().padding(top = 8.dp, start = 6.dp, end = 6.dp)) {
+        BasicText("AUTO DIFFICULTY · how close the voice must stay", style = MONO.copy(fontSize = 10.sp, letterSpacing = 1.sp, color = pal.light.copy(alpha = 0.5f)), modifier = Modifier.padding(bottom = 6.dp))
+        Pills(AutoRun.DIFFICULTIES.map { "±$it %" }, AutoRun.DIFFICULTIES.indexOf(within), pal, height = 36, fontSize = 11) { onWithin(AutoRun.DIFFICULTIES[it]); choosing = false }
+    }
+}
+
+/** A MIDI note's name with its octave, as on a piano: 48 is C3, 21 is A0, 108 is C8. */
+private fun noteName(note: Int): String = Shruti.KEYS[Math.floorMod(note, 12)] + (Math.floorDiv(note, 12) - 1)
+
+/** What the sequencer bar shows and does (v13). */
+private class SeqUi(
+    val mode: Boolean, val order: List<Int>, val playing: Boolean, val playingCard: Int?, val bpm: Int, val xfade: Boolean, val xfadeS: Float,
+    val onMode: () -> Unit, val onPlay: () -> Unit, val onBpm: (Int) -> Unit, val onXfade: () -> Unit, val onXfadeS: (Float) -> Unit
+)
+
+/** A small round button with a word or a sign, lit when [on]. */
+@Composable
+private fun Chip(text: String, on: Boolean, pal: Palette, enabled: Boolean = true, onClick: () -> Unit) {
+    Box(
+        Modifier.height(36.dp)
+            .background(if (on) pal.light else BLACK, RoundedCornerShape(18.dp))
+            .border(1.dp, if (on) pal.light else if (enabled) pal.faint else pal.faint.copy(alpha = 0.4f), RoundedCornerShape(18.dp))
+            .clickable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center
+    ) { BasicText(text, style = MONO.copy(color = if (on) BLACK else pal.light.copy(alpha = if (enabled) 0.8f else 0.3f), fontSize = 11.sp, letterSpacing = 0.5.sp)) }
+}
+
+/**
+ * The sequencer (v13): SEQ numbers the cards by taps, ▶ plays them in turn one beat each and ■ stops; − BPM + is its
+ * speed; XFADE − s + fades one chord into the next over that time (Marko: "so it's not hard sequencing").
+ */
+@Composable
+private fun SequencerBar(q: SeqUi, pal: Palette) {
+    val num = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, fontWeight = FontWeight.Bold, color = pal.light)
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Chip("SEQ", q.mode, pal, onClick = q.onMode)
+            Chip(if (q.playing) "■ STOP" else "▶ SEQUENCE", q.playing, pal, enabled = q.playing || q.order.isNotEmpty(), onClick = q.onPlay)
+            Spacer(Modifier.weight(1f))
+            Chip("−", false, pal) { q.onBpm(q.bpm - 5) }
+            BasicText("${q.bpm} BPM", style = num)
+            Chip("+", false, pal) { q.onBpm(q.bpm + 5) }
+        }
+        Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Chip("XFADE", q.xfade, pal, onClick = q.onXfade)
+            Spacer(Modifier.weight(1f))
+            Chip("−", false, pal, enabled = q.xfade) { q.onXfadeS(((q.xfadeS - 0.5f) * 10).roundToInt() / 10f) }
+            BasicText(String.format(java.util.Locale.ROOT, "%.1f s", q.xfadeS), style = num.copy(color = if (q.xfade) pal.light else pal.line))
+            Chip("+", false, pal, enabled = q.xfade) { q.onXfadeS(((q.xfadeS + 0.5f) * 10).roundToInt() / 10f) }
+        }
+    }
+}
+
+/** Material Icons' "save" (a floppy disk), on its 24-unit grid: after the notes, it keeps them as a CUSTOM card (v13). */
+private const val ANDROID_SAVE = "M17,3H5c-1.11,0 -2,0.9 -2,2v14c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2V7l-4,-4zM12,19c-1.66,0 -3,-1.34 -3,-3s1.34,-3 3,-3 3,1.34 3,3 -1.34,3 -3,3zM15,9H5V5h10v4z"
+
+@Composable
+private fun SaveIcon(pal: Palette, onSave: () -> Unit) {
+    val icon = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString(ANDROID_SAVE).toPath().apply { fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd } }
+    val shape = RoundedCornerShape(10.dp)
+    Box(Modifier.size(width = 46.dp, height = 58.dp).clip(shape).border(1.dp, pal.light, shape).clickable(onClick = onSave), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(24.dp)) {
+            val k = size.minDimension / 24f
+            withTransform({ scale(k, k, pivot = Offset.Zero) }) { drawPath(icon, pal.light) }
+        }
+    }
+}
+
+/** Naming a CUSTOM card (v13): the name in a field, SAVE, DELETE, CANCEL. */
+@Composable
+private fun NameDialog(name: String, pal: Palette, onDone: (String) -> Unit, onDelete: () -> Unit, onCancel: () -> Unit) {
+    var text by remember { mutableStateOf(androidx.compose.ui.text.input.TextFieldValue(name, androidx.compose.ui.text.TextRange(0, name.length))) }
+    val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+    LaunchedEffect(Unit) { focus.requestFocus() }
+    BackHandler(onBack = onCancel)
+    Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 40.dp)) {
+        BasicText("NAME THIS PRESET", style = MONO.copy(fontSize = 13.sp, letterSpacing = 3.sp, fontWeight = FontWeight.Bold, color = pal.light))
+        androidx.compose.foundation.text.BasicTextField(
+            value = text, onValueChange = { text = it }, singleLine = true,
+            textStyle = MONO.copy(fontSize = 20.sp, letterSpacing = 0.sp, color = pal.core),
+            cursorBrush = androidx.compose.ui.graphics.SolidColor(pal.light),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = { onDone(text.text) }),
+            modifier = Modifier.fillMaxWidth().padding(top = 18.dp).border(1.dp, pal.light, RoundedCornerShape(12.dp)).padding(14.dp).focusRequester(focus)
+        )
+        Row(Modifier.fillMaxWidth().padding(top = 18.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Chip("SAVE", true, pal) { onDone(text.text) }
+            Chip("CANCEL", false, pal, onClick = onCancel)
+            Spacer(Modifier.weight(1f))
+            Chip("DELETE", false, pal, onClick = onDelete)
         }
     }
 }
@@ -868,4 +1088,19 @@ private fun DrawScope.drawValve(tab: Tab, isOpen: Boolean, marked: Boolean, leve
     // a shimmer along the edge, never quite still
     val shimmer = 0.6f + 0.4f * sin(t * 2 * PI * 0.35 + tab.valve).toFloat()
     drawRoundRect(Color.White.copy(alpha = 0.7f * level * shimmer), r.topLeft, r.size, radius, style = Stroke(width = edge))
+}
+
+/** One end of the trainer's range: « an octave, ‹ a semitone, the note, › and » (v13). */
+@Composable
+private fun RangeStepper(label: String, note: Int, pal: Palette, onNote: (Int) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        BasicText(label, style = MONO.copy(fontSize = 12.sp, letterSpacing = 1.sp, color = pal.light.copy(alpha = 0.7f)), modifier = Modifier.width(52.dp))
+        Chip("«", false, pal) { onNote(note - 12) }
+        Chip("‹", false, pal) { onNote(note - 1) }
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            BasicText(noteName(note), style = MONO.copy(fontSize = 16.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = pal.light))
+        }
+        Chip("›", false, pal) { onNote(note + 1) }
+        Chip("»", false, pal) { onNote(note + 12) }
+    }
 }

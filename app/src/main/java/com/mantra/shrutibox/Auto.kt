@@ -53,6 +53,24 @@ class AutoRun(val notes: List<Int>, val playS: Double = 3.0, val holdS: Double =
         /** The walk from [start] up through [scale] to Sa'. A start outside the scale is sung first, then the scale goes on. */
         fun from(start: Int, scale: List<Int>): List<Int> =
             (listOf(start) + scale.filter { it > start } + 12).filter { it in 0..12 && it >= start }.distinct().sorted()
+
+        /** The 88 keys of a piano, A0 to C8, as MIDI notes: the trainer's range is chosen inside them (v13). */
+        val PIANO = 21..108
+        /** How close the voice must stay, ± percent of a semitone (v13, Marko: "The hardest part is 20% ... then 40%, then 60%"). */
+        val DIFFICULTIES = listOf(20, 40, 60)
+
+        /** True when MIDI [note] is Sa or a note of [scale] in key [key] (Sa = C in C). */
+        fun inScale(note: Int, key: Int, scale: List<Int>): Boolean = Math.floorMod(note - key, 12).let { it == 0 || it in scale }
+
+        /** The first note of the walk: the lowest note of [scale] at or above [low]. */
+        fun firstInRange(low: Int, key: Int, scale: List<Int>): Int = (low..PIANO.last).firstOrNull { inScale(it, key, scale) } ?: low
+
+        /**
+         * The walk through the range (v13), in MIDI notes: [start] (a key or a valve may start outside the scale, it is
+         * sung first), then every note of [scale] above it up to [high].
+         */
+        fun walk(start: Int, key: Int, scale: List<Int>, high: Int): List<Int> =
+            listOf(start) + ((start + 1)..maxOf(start, high)).filter { inScale(it, key, scale) }
     }
 }
 
@@ -96,4 +114,26 @@ class ArpRun(notes: List<Int>, val stepS: Double = 0.4) {
         index = (index + 1) % notes.size; since = now
         return true
     }
+}
+
+/**
+ * The sequencer (v13, Marko: "user press on each preset and then it gets the number, and then when user press sequence
+ * button this sequences is starting"): the numbered CUSTOM presets one after the other, one beat each, round and round.
+ * [bpm] is read at every beat, so a change is heard at the next one.
+ */
+class SeqRun(val steps: List<List<Int>>, var bpm: Int) {
+    var index = 0
+        private set
+    val valves: List<Int> get() = steps[index % steps.size]
+    private var since = Double.NaN
+
+    /** Moves on to [now] (seconds); true when the next step begins. */
+    fun tick(now: Double): Boolean {
+        if (since.isNaN()) since = now
+        if (steps.size < 2 || now - since < 60.0 / bpm.coerceIn(BPM.first, BPM.last) - 1e-9) return false
+        index = (index + 1) % steps.size; since = now
+        return true
+    }
+
+    companion object { val BPM = 10..240 }
 }

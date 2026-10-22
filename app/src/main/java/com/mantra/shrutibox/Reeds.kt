@@ -144,8 +144,10 @@ class Mixer(private val sampleRate: Int) {
     private val phaseB = DoubleArray(Shruti.COUNT) { it * 0.37 % 1.0 }
     private var bellows = 0.0
     private var norm = 1.0
-    private val up = 1.0 / (ATTACK_S * sampleRate)
-    private val down = 1.0 / (RELEASE_S * sampleRate)
+    /** v13 XFADE: when above 0, every reed swells and fades over this many seconds (the sequencer's crossfade). */
+    @Volatile var crossfadeS: Double = 0.0
+    private var up = 1.0 / (ATTACK_S * sampleRate)
+    private var down = 1.0 / (RELEASE_S * sampleRate)
     /** After [hush]: every reed falls silent in [HUSH_S], fast but without a click, so the microphone can open. */
     private val fast = 1.0 / (HUSH_S * sampleRate)
     private var quick = false
@@ -177,6 +179,9 @@ class Mixer(private val sampleRate: Int) {
         val table = Wave.table
         val k = key
         val detune = 2.0.pow(DETUNE_CENTS / 1200.0)
+        val xf = crossfadeS
+        up = 1.0 / ((if (xf > 0) xf else ATTACK_S) * sampleRate)
+        down = 1.0 / ((if (xf > 0) xf else RELEASE_S) * sampleRate)
         val shift = 2.0.pow(octave.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE).toDouble())
         val step = DoubleArray(Shruti.COUNT) { Shruti.freq(k, it) * shift / sampleRate }
         val bellowsStep = BELLOWS_HZ / sampleRate

@@ -382,3 +382,11 @@
 
 **Status:** researching, then v17.
 
+## The Novation note on the page — requested 22.10.2026
+
+> "please add a note on the website about integration with Novation and what we have implemented" (Marko, 22.10.2026)
+
+1. A section on the page: what the app does with a Novation Launchkey Mini MK4, released together with the build that has it.
+
+**Status:** asked.
+

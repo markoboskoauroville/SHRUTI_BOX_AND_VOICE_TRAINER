@@ -256,9 +256,13 @@
 
 > "When you finish everything, write in the code box a message to Svemir in Croatian speaking language. Say thank you for inspiration. I created ShrutiBox app. If you ever need a shruti, you can download it from here. You can also just point to the website. That's it. I actually have my WhatsApp right in auroville Community in my quick bookmarks bar, and you can just trigger it from there and find Svemir. Then just not sending message, just pasted there." (Marko, 22.10.2026)
 
+> "Also, please edit the image. The image is great, but it has an extra cable going out of it that's wrong. There is only one USB-C cable at the top of the device, this one which is on the side. It's an AI error. Please fix it." — "I'm talking about lifestyle and hero image." (Marko, 22.10.2026)
+
+7. The hero lifestyle image: remove the extra cable; only the one USB-C cable, from the top of the keyboard to the phone.
+
 6. At the end: a message to Svemir in spoken Croatian (thanks for the inspiration, the app, the page's link), shown in a code box, and pasted into his WhatsApp chat (WhatsApp Web from the bookmarks bar, Chrome profile auroville.community) without sending it.
 
-**Status:** asked.
+**Status:** v13 released (22.10.2026). The page is live at https://mantrashrutiandvoicetrainer.pages.dev (features, details, history from France to India with sources, six mantras, six verified YouTube videos, the v13 APK served from the page, two Nano Banana images and four screenshots), opened in Chrome. The message to Svemir is pasted in his WhatsApp chat, not sent. The hero image's extra cable: being fixed.
 
 ## v14 — requested 22.10.2026: landscape is the box alone, full screen
 

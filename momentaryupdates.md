@@ -402,3 +402,11 @@
 
 **Status:** built for testing.
 
+## v20 — 22.10.2026: the pitch strip on the display
+
+> "I did it. I don't know what's wrong with pitch. When I'm moving modulation slider, the matrix display is showing the readings, but for this one everything is dead" (Marko, 22.10.2026)
+
+1. The pitch strip did reach the app (bends 772 … 1131, back to 8192), but the Launchkey's own display does not show it; the app now writes "Pitch" over its value in semitones.
+
+**Status:** built for testing.
+

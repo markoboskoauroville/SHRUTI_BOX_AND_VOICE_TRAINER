@@ -468,7 +468,17 @@ private fun ShrutiScreen(
     DisposableEffect(midi) {
         midi.onNote = { port, ch, note, vel -> onMidi(port, ch, note, vel) }
         midi.onCc = { port, ch, cc, v -> onControl(port, ch, cc, v) }
-        midi.onBend = { _, v -> mixer.bendSemis = (v - 8192) / 8192.0 * 2.0 }
+        // v20: the Launchkey shows the modulation strip by itself but not the pitch strip, so the app writes it (at most
+        // about 15 times a second, and the centre at once when the finger lets go)
+        var lastShown = 0L
+        midi.onBend = { _, v ->
+            mixer.bendSemis = (v - 8192) / 8192.0 * 2.0
+            val now = android.os.SystemClock.uptimeMillis()
+            if (v == 8192 || now - lastShown > 66) {
+                lastShown = now
+                midi.launchkeyText("Pitch", String.format(java.util.Locale.ROOT, "%+.1f st", mixer.bendSemis))
+            }
+        }
         midi.onLaunchkey = { launchkeyEpoch++ }
         onDispose { midi.onNote = null; midi.onCc = null; midi.onBend = null; midi.onLaunchkey = null }
     }

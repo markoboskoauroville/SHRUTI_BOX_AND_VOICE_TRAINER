@@ -262,6 +262,10 @@
 
 > "Also, one part is missing. To charge the phone at the same time we're using the MIDI controller, I want to promote this device. Look at this." (Marko, 22.10.2026, with a screenshot of the StarTech 4-Port USB-C Hub HB31CM4CPD3: 4× USB-C, 10 Gbps, 100 W Power Delivery pass-through, 32 cm cable)
 
+> "Also find me alternatives to this device on Amazon Germany. You can open Amazon Germany with Chrome extension for Claude, and then you find the same device with metal build. This is plastic build. Power delivery is very important, and it's very important to have only USB-C ports. Find me an alternative." (Marko, 22.10.2026)
+
+9. Alternatives on amazon.de: a metal (aluminium) hub, Power Delivery pass-through, only USB-C ports.
+
 8. On the page: play and charge at once, the StarTech HB31CM4CPD3 hub between the phone, the MIDI keyboard and a USB-C charger, with its diagram.
 
 6. At the end: a message to Svemir in spoken Croatian (thanks for the inspiration, the app, the page's link), shown in a code box, and pasted into his WhatsApp chat (WhatsApp Web from the bookmarks bar, Chrome profile auroville.community) without sending it.

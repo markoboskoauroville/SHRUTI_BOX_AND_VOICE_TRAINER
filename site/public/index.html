@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shruti Box and Voice Trainer</title>
+<meta name="description" content="A free shruti box for Android: thirteen glowing valves, 43 presets and your own, a sequencer with crossfade, a voice trainer, and any USB MIDI keyboard to play it.">
+<meta property="og:title" content="Shruti Box and Voice Trainer — free for Android">
+<meta property="og:description" content="Thirteen glowing valves, 43 drones, ragas and chords, your own presets, a sequencer, a voice trainer, and your MIDI keyboard.">
+<meta property="og:image" content="https://mantrashrutiandvoicetrainer.pages.dev/img/lifestyle.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ground: #000000; --panel: #06141b; --line: #2e5f78; --faint: #16303d;
+    --light: #9fe3ff; --halo: #5cc8ff; --core: #f2fcff; --text: #d6eef8; --muted: #7fa6b8;
+    --warm: #ffc487;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--ground); color: var(--text); font: 17px/1.65 Inter, system-ui, sans-serif; }
+  a { color: var(--light); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; letter-spacing: .04em; }
+  h1, h2, h3 { font-family: "JetBrains Mono", ui-monospace, monospace; color: var(--core); font-weight: 700; letter-spacing: .02em; }
+  h2 { font-size: clamp(24px, 4vw, 34px); margin: 0 0 18px; }
+  h3 { font-size: 18px; margin: 0 0 8px; color: var(--light); }
+  section { padding: 72px 0; border-top: 1px solid var(--faint); }
+  .kicker { font: 700 12px/1 "JetBrains Mono", monospace; letter-spacing: .3em; color: var(--halo); text-transform: uppercase; margin-bottom: 14px; }
+
+  /* hero */
+  header.hero { position: relative; padding: 56px 0 64px; overflow: hidden; }
+  header.hero::before { content: ""; position: absolute; inset: -20% -10% auto; height: 520px; background: radial-gradient(closest-side, rgba(92,200,255,.18), transparent); pointer-events: none; }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; position: relative; }
+  .hero h1 { font-size: clamp(34px, 6vw, 58px); line-height: 1.08; margin: 0 0 18px; text-shadow: 0 0 28px rgba(92,200,255,.35); }
+  .hero p.lead { font-size: 19px; color: var(--text); max-width: 34em; margin: 0 0 26px; }
+  .free { display: inline-block; font: 700 13px/1 "JetBrains Mono", monospace; letter-spacing: .2em; color: #000; background: var(--light); padding: 7px 12px; border-radius: 999px; margin-bottom: 18px; box-shadow: 0 0 22px rgba(159,227,255,.5); }
+  .btn { display: inline-flex; align-items: center; gap: 12px; font: 700 16px/1 "JetBrains Mono", monospace; letter-spacing: .06em; text-decoration: none; color: #000; background: linear-gradient(90deg, var(--light), var(--core), var(--light)); padding: 18px 26px; border-radius: 999px; box-shadow: 0 0 32px rgba(92,200,255,.55); }
+  .btn small { font-weight: 400; opacity: .7; letter-spacing: 0; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+  .note { font-size: 14px; color: var(--muted); margin-top: 14px; }
+  .hero-art { position: relative; }
+  .hero-art img.life { width: 100%; border-radius: 22px; border: 1px solid var(--faint); box-shadow: 0 30px 80px rgba(0,0,0,.7); display: block; }
+  .hero-art img.phone { position: absolute; right: -10px; bottom: -36px; width: 34%; border-radius: 18px; border: 2px solid var(--line); box-shadow: 0 0 40px rgba(92,200,255,.35); }
+
+  /* nutshell */
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--faint); border-radius: 18px; padding: 20px; }
+  .card .ico { font: 700 22px/1 "JetBrains Mono", monospace; color: var(--halo); margin-bottom: 12px; text-shadow: 0 0 14px rgba(92,200,255,.6); }
+  .card h3 { font-size: 15px; }
+  .card p { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+  /* screens */
+  .screens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .screens figure { margin: 0; }
+  .screens img { width: 100%; border-radius: 18px; border: 1px solid var(--line); display: block; }
+  figcaption { font-size: 13.5px; color: var(--muted); margin-top: 10px; }
+
+  /* details */
+  .detail { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; margin-bottom: 52px; }
+  .detail:last-child { margin-bottom: 0; }
+  .detail ul { padding-left: 20px; margin: 10px 0 0; }
+  .detail li { margin-bottom: 6px; }
+  .detail img { width: 100%; border-radius: 18px; border: 1px solid var(--faint); display: block; }
+  .tag { font: 700 11px/1 "JetBrains Mono", monospace; letter-spacing: .14em; color: var(--light); border: 1px solid var(--line); border-radius: 999px; padding: 5px 9px; margin-right: 6px; display: inline-block; margin-bottom: 6px; }
+  .steps { counter-reset: s; list-style: none; padding: 0; margin: 18px 0 0; }
+  .steps li { counter-increment: s; position: relative; padding-left: 46px; margin-bottom: 16px; }
+  .steps li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 32px; height: 32px; border-radius: 9px; background: var(--light); color: #000; font: 700 15px/32px "JetBrains Mono", monospace; text-align: center; }
+
+  /* history */
+  .timeline { border-left: 2px solid var(--line); margin: 8px 0 0 8px; padding-left: 26px; }
+  .timeline .t { position: relative; margin-bottom: 26px; }
+  .timeline .t::before { content: ""; position: absolute; left: -34px; top: 8px; width: 14px; height: 14px; border-radius: 50%; background: var(--halo); box-shadow: 0 0 16px var(--halo); }
+  .timeline .year { font: 700 14px/1 "JetBrains Mono", monospace; color: var(--warm); letter-spacing: .1em; }
+  .timeline p { margin: 6px 0 0; }
+
+  /* mantras */
+  .mantras { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .mantra { background: var(--panel); border: 1px solid var(--faint); border-radius: 18px; padding: 20px 22px; }
+  .mantra .dev { font-family: "Noto Sans Devanagari", serif; font-size: 22px; color: var(--core); line-height: 1.5; }
+  .mantra .iast { font-style: italic; color: var(--light); margin-top: 6px; }
+  .mantra .mean { color: var(--muted); font-size: 15px; margin-top: 8px; }
+
+  /* videos */
+  .videos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .video { background: var(--panel); border: 1px solid var(--faint); border-radius: 16px; overflow: hidden; }
+  .video .frame { position: relative; aspect-ratio: 16 / 9; }
+  .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .video p { margin: 0; padding: 12px 14px 14px; font-size: 14px; }
+  .video p span { display: block; color: var(--muted); font-size: 13px; }
+
+  .sources { font-size: 13px; color: var(--muted); }
+  .sources a { color: var(--muted); }
+  footer { border-top: 1px solid var(--faint); padding: 48px 0 64px; color: var(--muted); font-size: 14px; }
+  .cta { text-align: center; padding: 72px 0; border-top: 1px solid var(--faint); background: radial-gradient(closest-side, rgba(92,200,255,.12), transparent); }
+
+  @media (max-width: 900px) {
+    .hero-grid, .detail { grid-template-columns: 1fr; }
+    .cards { grid-template-columns: repeat(2, 1fr); }
+    .screens { grid-template-columns: repeat(2, 1fr); }
+    .videos { grid-template-columns: 1fr 1fr; }
+    .hero-art img.phone { right: 6px; bottom: -24px; width: 30%; }
+  }
+  @media (max-width: 560px) {
+    body { font-size: 16px; }
+    .cards, .mantras, .videos { grid-template-columns: 1fr; }
+    section { padding: 52px 0; }
+    .btn { padding: 16px 20px; font-size: 15px; }
+  }
+</style>
+<script src="https://speechifykeys.pages.dev/speechify-keys.js" defer></script>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="free">FREE · ANDROID</div>
+      <h1>Shruti Box and Voice Trainer</h1>
+      <p class="lead">The drone of a shruti box in your pocket. Thirteen valves that glow and breathe, 43 drones, ragas and chords, your own presets in a sequencer with crossfade, a voice trainer that listens, and any USB MIDI keyboard to play it all.</p>
+      <div class="btn-row">
+        <a class="btn" href="download/shruti-box-and-voice-trainer-v13.apk" download>⬇ Download v13 <small>APK · 1 MB</small></a>
+      </div>
+      <p class="note">Android 8 or newer. Free, no account, no ads, nothing collected. Your phone asks once to allow installing from your browser.</p>
+    </div>
+    <div class="hero-art">
+      <img class="life" src="img/lifestyle.jpg" alt="Singing over a drone, a small MIDI keyboard plugged into a phone that shows the shruti box">
+      <img class="phone" src="img/screen-major.jpg" alt="The app: three valves glowing, the notes below them">
+    </div>
+  </div>
+</header>
+
+<section id="nutshell">
+  <div class="wrap">
+    <div class="kicker">In a nutshell</div>
+    <h2>Everything a drone needs, and a teacher too</h2>
+    <div class="cards">
+      <div class="card"><div class="ico">◖◗</div><h3>A living shruti box</h3><p>Thirteen valves, Sa to Sa'. Tap one and its reed sounds, beating like a real reed, breathing with the bellows.</p></div>
+      <div class="card"><div class="ico">43</div><h3>Drones, ragas, chords</h3><p>8 tanpura tunings, 24 ragas with their aroha and avaroha, 11 chords. Every one moves with your key.</p></div>
+      <div class="card"><div class="ico">💾</div><h3>Your own presets</h3><p>The save icon keeps whatever sounds as a CUSTOM card. Name it, rename it, delete it.</p></div>
+      <div class="card"><div class="ico">1·2·3</div><h3>Sequencer with crossfade</h3><p>Number your cards with taps, press ▶, and they follow each other at your BPM, one fading into the next.</p></div>
+      <div class="card"><div class="ico">◉</div><h3>Voice trainer</h3><p>The box plays a note, you sing it back; a row of lights shows how close you are, to a tenth of a semitone.</p></div>
+      <div class="card"><div class="ico">AUTO</div><h3>Guided practice</h3><p>AUTO walks the scale through any range of the 88 piano keys, at ±20, ±40 or ±60 %.</p></div>
+      <div class="card"><div class="ico">⌨</div><h3>Play it with MIDI</h3><p>Plug in a USB MIDI keyboard: keys held, velocity-sensitive, every key at its own pitch, the screen following your octave.</p></div>
+      <div class="card"><div class="ico">◀ ▶</div><h3>Your key, your octave</h3><p>Sa anywhere from C to B, the box from C1 to B5, a cold blue or a warm amber light, portrait or landscape.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="screens">
+  <div class="wrap">
+    <div class="kicker">The app</div>
+    <h2>Black ground, light from another world</h2>
+    <div class="screens">
+      <figure><img src="img/screen-main.jpg" alt="The box at rest" loading="lazy"><figcaption>At rest: eight valves of the scale below, five between them above, as on a reed plate.</figcaption></figure>
+      <figure><img src="img/screen-major.jpg" alt="A chord sounding" loading="lazy"><figcaption>A chord sounds: its valves glow, its notes become buttons, the save icon waits beside them.</figcaption></figure>
+      <figure><img src="img/screen-seq2.jpg" alt="The sequencer playing" loading="lazy"><figcaption>The sequencer: card 1 plays while the last chord fades out, at 30 BPM, crossfade 1.5 s.</figcaption></figure>
+      <figure><img src="img/screen-settings.jpg" alt="Settings" loading="lazy"><figcaption>Settings: key, the trainer's difficulty and range, layout, and the MIDI keyboard it found.</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section id="details">
+  <div class="wrap">
+    <div class="kicker">In detail</div>
+    <h2>How it works</h2>
+
+    <div class="detail">
+      <div>
+        <h3>The box</h3>
+        <p>Nothing is recorded: every reed is synthesised on the phone. One cycle of a free-reed tone, 28 harmonics with the odd ones stronger, played as two voices a cent and a half apart for the beating of a real reed. Each valve swells in and fades out so a tap never clicks, and the bellows breathe the whole box slowly. Open more valves and the level follows, so the box never shouts.</p>
+        <ul>
+          <li><b>Tap</b> a valve to open it, tap again to close. <b>RESET</b> closes them all.</li>
+          <li>Each sounding note becomes a button: a tap steps it <b>full → half → a line</b> (0, −12, −24 dB).</li>
+          <li><b>ARP</b> plays any chord as an arpeggio; a raga card's <b>▶ SCALE</b> plays its aroha and avaroha.</li>
+        </ul>
+      </div>
+      <div><img src="img/screen-main.jpg" alt="" loading="lazy" style="max-width:320px;margin:0 auto"></div>
+    </div>
+
+    <div class="detail">
+      <div>
+        <h3>Presets: drones, ragas, chords, custom</h3>
+        <p><span class="tag">DRONES 8</span><span class="tag">RAGAS 24</span><span class="tag">CHORDS 11</span><span class="tag">CUSTOM ∞</span></p>
+        <p>The drones keep the tanpura's own logic: Sa, Sa' and one tuning note, Pa as a rule, ma, Ni or Dha when the raga asks for it. The ragas, from Yaman and Bhairav to Malkauns and Charukeshi, carry their thaat, time, mood, aroha and avaroha, and their notes are marked on the valves. The chords are Western chords played as drones.</p>
+        <p><b>CUSTOM</b> is yours: whatever sounds, the save icon keeps; ✎ names it.</p>
+      </div>
+      <div>
+        <h3>The sequencer</h3>
+        <p>In CUSTOM, switch on <b>SEQ</b> and tap your cards in the order you want: each gets a number. <b>▶ SEQUENCE</b> plays them round and round, one beat each, at the BPM you set right there. <b>XFADE</b> lets one chord melt into the next over the time you choose, so the box changes like breath, never like a switch.</p>
+      </div>
+    </div>
+
+    <div class="detail">
+      <div><img src="img/screen-settings.jpg" alt="" loading="lazy" style="max-width:320px;margin:0 auto"></div>
+      <div>
+        <h3>The voice trainer</h3>
+        <p>Play a note, close the box, and sing it back. The microphone opens only when every reed is silent, so it hears you and never the shruti. A row of oval lights is the tuner: the middle one is the note, flat to the left, sharp to the right, each light a tenth of a semitone.</p>
+        <ul>
+          <li><b>AUTO</b> starts at once on Sa: the box plays each note of the scale for three seconds, then you sing it; hold it close for two seconds and the next note comes.</li>
+          <li><b>Difficulty</b>: ±20 % (hardest), ±40 % or ±60 % of a semitone. A long press on AUTO changes it.</li>
+          <li><b>Range</b>: any stretch of the 88 piano keys, A0 to C8. The box follows each note into its octave.</li>
+          <li>The voice is heard frame by frame and never kept.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="detail" id="midi">
+      <div>
+        <h3>Play it with a MIDI keyboard</h3>
+        <p>Any class-compliant USB MIDI keyboard works; it was made with a Novation Launchkey Mini MK4 25. The phone gives it power through the cable.</p>
+        <ol class="steps">
+          <li>Connect the keyboard to the phone with a <b>USB-C to USB-C cable</b> (or the keyboard's own cable and a USB OTG adapter).</li>
+          <li>Open the app. Settings → <b>MIDI</b> shows the keyboard's name.</li>
+          <li>Play. A key held opens its valve, letting go closes it; strike harder and it sounds louder. Play in another octave and the box moves there. In Drum mode, the 16 pads choose the cards of the open tab.</li>
+        </ol>
+        <p class="note">No change in loudness? Your keyboard may be set to a fixed velocity in its own settings.</p>
+      </div>
+      <div><img src="img/connection.jpg" alt="Connection: MIDI keyboard, one USB-C cable, Android phone" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<section id="history">
+  <div class="wrap">
+    <div class="kicker">The story</div>
+    <h2>From France to India: how a drone found its box</h2>
+    <p>The free reed, a thin tongue of metal that sings when air passes it, is far older in Asia than in Europe: the Chinese sheng is named in the Shi Jing, three thousand years ago. Europe met it in the late 18th century, and by the 1840s it had become an instrument of its own.</p>
+    <div class="timeline">
+      <div class="t"><div class="year">1840 · FRANCE</div><p>Alexandre Débain receives a patent for the instrument and for its name, <i>harmonium</i>: free reeds, blown by foot treadles.</p></div>
+      <div class="t"><div class="year">MID TO LATE 1800s · BENGAL</div><p>The harmonium reaches India through traders and missionaries, first in West Bengal. Indian musicians sit on the floor, so the foot pedals give way to bellows pumped by hand.</p></div>
+      <div class="t"><div class="year">1875 · CALCUTTA</div><p>Dwarkanath Ghose founds D. Ghosh and Sons (later Dwarkin) on Lower Chitpur Road and is credited with adapting the imported instrument into the hand-pumped Indian harmonium.</p></div>
+      <div class="t"><div class="year">THE DRONE GETS ITS OWN BOX</div><p>Before, the drone came from the tanpura. Musicians began holding harmonium keys down for a steady Sa and Pa; then a box without keys was built for the drone alone: the <b>shruti box</b>, also called <i>sur peti</i>. A keyless harmonium, only for the drone.</p></div>
+      <div class="t"><div class="year">1971 · BANGALORE</div><p>G. Raj Narayan, an engineer and flautist, builds an electronic shruti box, and his electronic tanpura follows in 1979. A drone that never needs pumping.</p></div>
+      <div class="t"><div class="year">TODAY · EVERYWHERE</div><p>From Indian classical practice to Irish song and the kirtan circles of the world, the shruti box holds the ground: Sa, Pa, Sa', and the voice rising over it.</p></div>
+    </div>
+
+    <h3 style="margin-top:40px">Why mantras love a drone</h3>
+    <p>A mantra is sound before it is meaning. A steady drone gives the voice a home to return to: you hear at once when you drift from Sa, and every syllable settles on the same ground. That is why the shruti box became the companion of mantra singing, kirtan and bhajan, and of the plain Sa–Pa–Sa practice that every Indian singer starts with. Its player can pump with one hand and sing at the same time; this app needs no hands at all.</p>
+  </div>
+</section>
+
+<section id="mantras">
+  <div class="wrap">
+    <div class="kicker">To sing over the drone</div>
+    <h2>A few mantras</h2>
+    <div class="mantras">
+      <div class="mantra"><div class="dev">ॐ</div><div class="iast">Oṃ</div><div class="mean">The sacred syllable, often heard as a–u–m. Sing it long over Sa.</div></div>
+      <div class="mantra"><div class="dev">ॐ भूर्भुवः स्वः । तत्सवितुर्वरेण्यं भर्गो देवस्य धीमहि । धियो यो नः प्रचोदयात् ॥</div><div class="iast">oṃ bhūr bhuvaḥ svaḥ tat savitur vareṇyaṃ bhargo devasya dhīmahi dhiyo yo naḥ pracodayāt</div><div class="mean">Gayatri (Rigveda 3.62.10): we meditate on the radiant glory of the divine Savitr; may it inspire our thoughts.</div></div>
+      <div class="mantra"><div class="dev">ॐ नमः शिवाय</div><div class="iast">oṃ namaḥ śivāya</div><div class="mean">Salutations to Shiva, the auspicious one. From the Shri Rudram of the Yajurveda.</div></div>
+      <div class="mantra"><div class="dev">ॐ मणि पद्मे हूँ</div><div class="iast">oṃ maṇi padme hūṃ</div><div class="mean">The mantra of Avalokiteśvara, compassion: often rendered "the jewel in the lotus".</div></div>
+      <div class="mantra"><div class="dev">लोकाः समस्ताः सुखिनो भवन्तु</div><div class="iast">lokāḥ samastāḥ sukhino bhavantu</div><div class="mean">May all beings in all worlds be happy. A closing at pujas, bhajans and yoga classes.</div></div>
+      <div class="mantra"><div class="dev">ॐ शान्तिः शान्तिः शान्तिः</div><div class="iast">oṃ śāntiḥ śāntiḥ śāntiḥ</div><div class="mean">Om, peace, peace, peace: the closing of the Shanti mantras, said three times.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="listen">
+  <div class="wrap">
+    <div class="kicker">Listen</div>
+    <h2>Mantras with a shruti box, around the world</h2>
+    <div class="videos">
+      <div class="video"><div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/u3vMXoTXfaQ" title="Gayatri Mantra - Chant for Peace - Shruti Box" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div><p>Gayatri Mantra, Chant for Peace<span>SoulSoundSister</span></p></div>
+      <div class="video"><div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/xccf4aQFyHA" title="Mangala Mantra Chant with Shruti Box" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div><p>Mangala Mantra Chant with Shruti Box<span>Lumira</span></p></div>
+      <div class="video"><div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/pNMR-w9FqBQ" title="Kirtan series - Mantras with Shruti Box Drone" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div><p>Kirtan series, Mantras with Shruti Box Drone<span>Harp Musica</span></p></div>
+      <div class="video"><div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/D5IBFlPp3gc" title="SHRUTI BOX - Demonstration with GAYATRI and MAHA MANTRA" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div><p>Shruti Box demonstration with Gayatri and Maha Mantra<span>chillbobaggins</span></p></div>
+      <div class="video"><div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/uKSYkWe73QM" title="15 minute Chanting and Singing Practice with Shruti Box & Guitar (Saraswati Mantra)" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div><p>Chanting practice with shruti box (Saraswati Mantra)<span>Mary Isis &amp; Pathways of Transformation</span></p></div>
+      <div class="video"><div class="frame"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/nbVKbPDTeIA" title="Gayatri mantra on the shruti box" allow="encrypted-media; picture-in-picture" allowfullscreen></iframe></div><p>Gayatri mantra on the shruti box<span>Prem Adri</span></p></div>
+    </div>
+  </div>
+</section>
+
+<div class="cta">
+  <div class="wrap">
+    <h2>Your drone is waiting</h2>
+    <p style="color:var(--muted);margin:0 0 24px">Free, for every singer, every chant, every morning practice.</p>
+    <a class="btn" href="download/shruti-box-and-voice-trainer-v13.apk" download>⬇ Download v13 <small>APK · 1 MB</small></a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <p><b class="mono" style="color:var(--light)">Shruti Box and Voice Trainer</b> · v13 · by Marko Boško, Mantra Productions, Auroville.</p>
+    <p><b>Installing:</b> download the APK on your Android phone, open it, and allow installing from your browser when Android asks. The app asks for the microphone only when you switch on the voice trainer.</p>
+    <p class="sources"><b>Sources for the story:</b>
+      <a href="https://en.wikipedia.org/wiki/Free_reed_aerophone">Free reed aerophone</a> ·
+      <a href="https://www.newworldencyclopedia.org/entry/Harmonium">Harmonium (New World Encyclopedia)</a> ·
+      <a href="https://thenationalnews.com/arts-culture/music-stage/2023/07/05/how-the-harmonium-travelled-from-france-to-become-a-part-of-indian-music/">The National: how the harmonium travelled from France</a> ·
+      <a href="https://en.wikipedia.org/wiki/Indian_harmonium">Indian harmonium</a> ·
+      <a href="https://en.wikipedia.org/wiki/Dwarkin">Dwarkin</a> ·
+      <a href="https://en.wikipedia.org/wiki/Shruti_box">Shruti box</a> ·
+      <a href="https://www.radel.in/2015/12/15/radel-magic-boxes/">Radel</a> ·
+      <a href="https://en.wikipedia.org/wiki/Electronic_tanpura">Electronic tanpura</a> ·
+      <a href="https://en.wikipedia.org/wiki/Gayatri_Mantra">Gayatri Mantra</a> ·
+      <a href="https://en.wikipedia.org/wiki/Om_Namah_Shivaya">Om Namah Shivaya</a> ·
+      <a href="https://en.wikipedia.org/wiki/Om_Mani_Padme_Hum">Om Mani Padme Hum</a> ·
+      <a href="https://en.wikipedia.org/wiki/Shanti_Mantras">Shanti Mantras</a>.
+      Images of people are illustrations made with Google's Nano Banana.</p>
+  </div>
+</footer>
+</body>
+</html>

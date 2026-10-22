@@ -179,4 +179,8 @@
 
 1. The MIDI controller in front of the Pixel 7's camera (its model found from the camera) plays the shruti box: its keys or pads open and close the valves.
 
-**Status:** asked.
+> "I did press the low C. It keeps the valve opened. It should basically not keep when I press it's open, and when I stop pressing it's closed. Thank you." (Marko, 22.10.2026, after trying the first v11 build)
+
+2. A key is held, not toggled: pressed, its valve opens; released, it closes.
+
+**Status:** in progress. The controller is a Novation Launchkey Mini MK4 25 on the Pixel's USB; the first build (test branch, build 53) opened it and the low C reached the box, but toggled.

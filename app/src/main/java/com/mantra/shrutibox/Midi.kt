@@ -15,15 +15,15 @@ import androidx.compose.runtime.mutableStateOf
 
 /**
  * A MIDI controller plays the box (v11, Marko 22.10.2026: "make this MIDI controller control my Shruti box"). Every
- * USB or Bluetooth MIDI device that sends is opened as it appears; each note-on is handed to [onNote] on the main
- * thread as (channel 0–15, note, velocity). Note-offs are dropped: a key opens or closes a valve as a tap does.
+ * USB or Bluetooth MIDI device that sends is opened as it appears; each key going down or up is handed to [onNote] on
+ * the main thread as (channel 0–15, note, down). A note-on of velocity 0 is a release, as the Launchkey sends it.
  * First player: a Novation Launchkey Mini MK4 25 on the Pixel 7's USB (its keys on channel 1, its pads in Drum mode on
  * channel 10, notes 36–51).
  */
 class Midi(context: Context) {
     /** The names of the controllers that are open now, for settings; empty when none. */
     val connected = mutableStateOf<List<String>>(emptyList())
-    var onNote: ((Int, Int, Int) -> Unit)? = null
+    var onNote: ((Int, Int, Boolean) -> Unit)? = null
 
     private val main = Handler(Looper.getMainLooper())
     private val manager: MidiManager? =
@@ -77,7 +77,7 @@ class Midi(context: Context) {
         connected.value = names.values.sorted()
     }
 
-    /** Reads the bytes of one port into note-ons (running status included); everything else is passed over. */
+    /** Reads the bytes of one port into notes down and up (running status included); everything else is passed over. */
     private inner class Parser(private val port: Int) : MidiReceiver() {
         private var status = 0
         private var first = -1
@@ -87,12 +87,13 @@ class Midi(context: Context) {
                 when {
                     b >= 0xF8 -> Unit                                  // clock and other real-time bytes, between any two
                     b >= 0x80 -> { status = b; first = -1 }
-                    status and 0xF0 == 0x90 -> {
+                    status and 0xF0 == 0x90 || status and 0xF0 == 0x80 -> {
                         if (first < 0) first = b
                         else {
                             val ch = status and 0x0F; val note = first; val vel = b; first = -1
                             Log.d(TAG, "port $port ch ${ch + 1} note $note vel $vel")
-                            if (vel > 0) main.post { onNote?.invoke(ch, note, vel) }
+                            val down = status and 0xF0 == 0x90 && vel > 0
+                            main.post { onNote?.invoke(ch, note, down) }
                         }
                     }
                     else -> first = -1

@@ -312,7 +312,8 @@ private fun ShrutiScreen(
         if (v != null) { open[v] = true; mixer.setOpen(v, true) } else mixer.setNote(r.note, true)
         target = v ?: pitchClass(r.note); armed = false
     }
-    fun autoScale() = liveScaleOrMajor()
+    // the chosen raga's notes, or Sa Re Ga ma Pa Dha Ni when no raga is chosen, read at the moment AUTO starts
+    fun autoScale(): List<Int> = chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i)?.scale }?.takeIf { it.isNotEmpty() } ?: AutoRun.MAJOR
     fun startAuto(startNote: Int) {
         if (!micGranted) askMic()
         arpRun = null; seqRun = null

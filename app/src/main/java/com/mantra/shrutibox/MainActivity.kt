@@ -138,6 +138,8 @@ private class Settings(prefs: SharedPreferences) {
     var rangeHigh by mutableIntStateOf(prefs.getInt("rangeHigh", 60).coerceIn(AutoRun.PIANO.first, AutoRun.PIANO.last))
     var bpm by mutableIntStateOf(prefs.getInt("bpm", 30).coerceIn(SeqRun.BPM.first, SeqRun.BPM.last))
     var xfade by mutableStateOf(prefs.getBoolean("xfade", true))
+    // v22: the sound, 0 the shruti box, 1 the piano
+    var instrument by mutableIntStateOf(prefs.getInt("instrument", 0).coerceIn(0, 1))
     // v14: in landscape the box is alone, full screen; these panels may be added beside it, all off at first
     var landNotes by mutableStateOf(prefs.getBoolean("landNotes", false))
     var landTrainer by mutableStateOf(prefs.getBoolean("landTrainer", false))
@@ -147,7 +149,7 @@ private class Settings(prefs: SharedPreferences) {
 
     fun save(prefs: SharedPreferences) = prefs.edit {
         putInt("within", within); putInt("rangeLow", rangeLow); putInt("rangeHigh", rangeHigh); putInt("bpm", bpm)
-        putBoolean("xfade", xfade); putFloat("xfadeS", xfadeS)
+        putBoolean("xfade", xfade); putFloat("xfadeS", xfadeS); putInt("instrument", instrument)
         putBoolean("landNotes", landNotes); putBoolean("landTrainer", landTrainer); putBoolean("landPresets", landPresets); putBoolean("landOctave", landOctave)
         putInt("palette", palette); putBoolean("landscape", landscape); putBoolean("showNotes", showNotes)
         putBoolean("showPresets", showPresets); putBoolean("showKeys", showKeys); putBoolean("showNames", showNames)
@@ -178,6 +180,9 @@ class MainActivity : ComponentActivity() {
         levels.forEachIndexed { v, i -> engine.mixer.setVolume(v, Loudness.gain(i)) }
         val settings = Settings(prefs)
         midi = Midi(this)
+        // v22: the piano's 60 recordings are decoded once, in the background; the reeds play meanwhile
+        engine.mixer.instrument = settings.instrument
+        Thread { engine.mixer.piano.setSamples(PianoLoader.load(assets)) }.start()
         micGranted.value = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         fixLayout(settings.landscape)
         setContent {
@@ -317,6 +322,8 @@ private fun ShrutiScreen(
     // the chosen raga's notes, marked on the valves (v7, Marko: "yes, mark ragas"); Sa' is Sa, so it is marked too
     val marks = chosenPreset?.scale?.takeIf { it.isNotEmpty() }?.let { it.toSet() + 12 } ?: emptySet()
 
+    // v22: changing the sound closes whatever sounds and plays on with the other one
+    LaunchedEffect(settings.instrument) { if (mixer.instrument != settings.instrument) { mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; mixer.instrument = settings.instrument } }
     val anyOpen = open.any { it }
     LaunchedEffect(anyOpen) { onAnyOpen(anyOpen) }
 
@@ -799,6 +806,9 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
             Spacer(Modifier.weight(1f))
             BasicText("DONE", style = MONO.copy(fontSize = 13.sp, color = pal.light), modifier = Modifier.clickable(onClick = onDone).padding(14.dp))
         }
+        // v22 (Marko: "Piano and Shruti Box 2 sounds")
+        BasicText("SOUND", style = head, modifier = Modifier.padding(top = 18.dp, bottom = 8.dp))
+        Pills(listOf("SHRUTI BOX", "PIANO"), s.instrument, pal) { s.instrument = it }
         BasicText("COLOUR", style = head, modifier = Modifier.padding(top = 18.dp, bottom = 8.dp))
         Pills(PALETTES.map { it.name }, s.palette, pal) { s.palette = it }
         // v12: the key moved here from under the box, where ◀ ▶ are now
@@ -858,6 +868,11 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
             "a key held opens its valve and released closes it, as loud as it is struck, at its own pitch; the box follows its Octave buttons; the pitch strip bends, the modulation strip adds vibrato; the eight knobs set the loudness of Sa … Sa' (with Shift: re ga Ma dha ni); the pads are the sequencer's steps, lit while numbered and white while they sound",
             style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)),
             modifier = Modifier.padding(top = 4.dp)
+        )
+        BasicText("PIANO", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        BasicText(
+            "Piano samples: Salamander Grand Piano V3 by Alexander Holm, licensed under CC BY 3.0 (creativecommons.org/licenses/by/3.0). The samples were trimmed, reduced to 30 notes in two layers and re-encoded.",
+            style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.6f))
         )
         BasicText("VERSION", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         BasicText(

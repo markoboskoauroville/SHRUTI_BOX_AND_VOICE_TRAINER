@@ -55,6 +55,17 @@ class ReedsTest {
     @Test fun noNoteAliases() = assertTrue((0..127).all { n -> val st = Shruti.noteFreq(n) * 2.0.pow(2.0 / 12) / rate; Wave.harmonicsFor(st) * st <= 0.45 || Wave.harmonicsFor(st) == 1 })
     @Test fun lowNotesKeepTheFullReed() = assertEquals(28, Wave.harmonicsFor(Shruti.noteFreq(48) / rate))
     @Test fun c7IsThinner() = assertTrue(Wave.harmonicsFor(Shruti.noteFreq(108) / rate) <= 5)
+    // v22: the piano, with a made-up sample (a 440 Hz sine, one second)
+    private fun sine(midi: Int, layer: Int) = PianoSample(midi, layer, ShortArray(rate) { (12000 * kotlin.math.sin(2 * Math.PI * 440.0 * it / rate)).toInt().toShort() }, rate)
+    @Test fun pianoGridIsMinorThirds() { assertEquals(21, Piano.nearest(21)); assertEquals(24, Piano.nearest(25)); assertEquals(60, Piano.nearest(60)); assertEquals(108, Piano.nearest(127)) }
+    @Test fun pianoStrikesAndDamps() {
+        val m = Mixer(rate); m.instrument = 1; m.piano.setSamples(listOf(sine(69, 0), sine(69, 1)))
+        m.key = 0; m.octave = 0; m.setVolume(9, 1.0); m.setOpen(9, true)            // Dha in C3 is A3 = 57 → sample 57? nearest(57) = 57
+        m.piano.setSamples(listOf(sine(57, 0), sine(57, 1))); m.setOpen(9, false); m.setOpen(9, true)
+        assertTrue(peak(m, 0.2) > 0.05)
+        m.setOpen(9, false); peak(m, 0.5); assertEquals(0, m.piano.count())
+    }
+    @Test fun pianoSilentWithoutSamples() { val m = Mixer(rate); m.instrument = 1; m.setOpen(0, true); assertTrue(peak(m, 0.2) < 1e-6) }
     @Test fun eightyEightKeys() = assertEquals(88, AutoRun.PIANO.count())
     @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
     @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }

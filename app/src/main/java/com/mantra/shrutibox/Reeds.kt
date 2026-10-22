@@ -150,6 +150,7 @@ class Mixer(private val sampleRate: Int) {
         const val DETUNE_CENTS = 1.5
         const val LEVEL = 0.32
         const val HUSH_S = 0.02
+        const val PIANO_LEVEL = 0.9
     }
 
     @Volatile var key: Int = 0
@@ -182,14 +183,26 @@ class Mixer(private val sampleRate: Int) {
     private val fast = 1.0 / (HUSH_S * sampleRate)
     private var quick = false
 
-    @Synchronized fun setOpen(valve: Int, isOpen: Boolean) { if (valve in 0 until Shruti.COUNT) open[valve] = isOpen }
+    /** v22: which sound plays, 0 the shruti box's reeds, 1 the piano (Salamander Grand). */
+    @Volatile var instrument: Int = 0
+    val piano = Piano(sampleRate)
+
+    @Synchronized fun setOpen(valve: Int, isOpen: Boolean) {
+        if (valve !in 0 until Shruti.COUNT) return
+        // the piano strikes a valve as it opens and damps it as it closes, at the valve's loudness
+        if (instrument == 1 && isOpen != open[valve]) {
+            if (isOpen) piano.noteOn(1000 + valve, Shruti.saNote(key, octave) + valve, volume[valve]) else piano.noteOff(1000 + valve)
+        }
+        open[valve] = isOpen
+    }
     @Synchronized fun isOpen(valve: Int): Boolean = valve in 0 until Shruti.COUNT && open[valve]
-    @Synchronized fun closeAll() { open.fill(false); noteOpen.fill(false) }
+    @Synchronized fun closeAll() { open.fill(false); noteOpen.fill(false); piano.allOff() }
     /** Closes every valve and silences the box at once (the voice trainer's VOICE, v6): no 0.35 s tail. */
-    @Synchronized fun hush() { open.fill(false); noteOpen.fill(false); quick = true }
+    @Synchronized fun hush() { open.fill(false); noteOpen.fill(false); quick = true; piano.allOff(now = true) }
     /** A free reed (v12): MIDI [note] sounding at its own pitch, at [volume] (1 = 0 dB), or let go. */
     @Synchronized fun setNote(note: Int, isOpen: Boolean, volume: Double = 1.0) {
         if (note !in 0..127) return
+        if (instrument == 1 && isOpen != noteOpen[note]) { if (isOpen) piano.noteOn(note, note, volume) else piano.noteOff(note) }
         noteOpen[note] = isOpen
         if (isOpen) noteVolume[note] = volume.coerceIn(0.0, 1.0)
     }
@@ -229,6 +242,8 @@ class Mixer(private val sampleRate: Int) {
             norm += (target - norm) * 0.0005
             bellows = (bellows + bellowsStep) % 1.0
             val air = 1.0 + BELLOWS_DEPTH * sin(2 * PI * bellows)
+            // v22: the piano instead of the reeds, bent by the strips like them
+            if (instrument == 1) { out[s] = tanh(piano.next(bend) * PIANO_LEVEL).toFloat(); continue }
             var sum = 0.0
             for (v in 0 until Shruti.COUNT) {
                 val to = if (open[v]) volume[v] else 0.0

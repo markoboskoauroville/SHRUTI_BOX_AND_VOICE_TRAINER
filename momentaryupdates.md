@@ -427,5 +427,7 @@
 1. Two sounds: Shruti Box (the reeds) and Piano.
 2. The piano from the best free samples the industry praises (or a wavetable), small enough for a downloaded app: a balance of size and quality.
 
-**Status:** researching the samples.
+> "salamander" (Marko, 22.10.2026, choosing between Salamander Grand Piano V3 and Upright Piano KW)
+
+**Status:** v22 built: Salamander Grand Piano V3 (Yamaha C5, CC BY 3.0), its own 30 notes A0 … C8 every minor third × 2 layers (v5 soft, v13 strong), downloaded alone (88 MB of FLAC instead of the whole set, on the Download Monitor), cut to 5 s with a 1.5 s fade, mono AAC 64 kbps 32 kHz: 2.5 MB in assets/piano. SOUND in settings: SHRUTI BOX | PIANO; the piano plays from the valves, the keys, the presets, the pads and the sequencer, bent by the strips; the credit in settings and the licence beside the samples.
 

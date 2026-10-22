@@ -196,5 +196,9 @@
 1. Every key of the MIDI keyboard sounds at its own pitch: no octave folding. Keys inside the octave on the screen light its valves; keys outside it sound without lighting anything.
 2. At the bottom, instead of the row of keys C … B: two arrows, ◀ and ▶, that move the octave on the screen (what is shown, and what the valves play) down or up.
 
+> "Also fix the design for the setting icon. It should look exactly like Android setting icon." (Marko, 22.10.2026)
+
+3. The settings button is Android's own settings gear (Material "settings").
+
 **Status:** asked.
 

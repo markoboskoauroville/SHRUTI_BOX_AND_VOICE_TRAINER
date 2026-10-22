@@ -48,7 +48,10 @@ object PianoLoader {
         val info = MediaCodec.BufferInfo()
         var inputDone = false
         try {
-            while (true) {
+            // bounded (the project's gate allows no unbounded loop): a 5 s file needs a few hundred rounds
+            var rounds = 0
+            var done = false
+            while (!done && rounds++ < 20_000) {
                 if (!inputDone) {
                     val ii = codec.dequeueInputBuffer(10_000)
                     if (ii >= 0) {
@@ -68,7 +71,7 @@ object PianoLoader {
                         pcm[n++] = (acc / channels).toShort()
                     }
                     codec.releaseOutputBuffer(oi, false)
-                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) break
+                    if (info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0) done = true
                 }
             }
         } finally {

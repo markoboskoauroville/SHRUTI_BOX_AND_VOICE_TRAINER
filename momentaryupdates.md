@@ -317,5 +317,5 @@
 1. One Facebook post on his profile (Chrome, auroville.community), English first, then Croatian, in his own plain writing style read from his posts: no hype, no emoji lists, no hashtags.
 2. One screenshot of the app attached. Composed and left unsent: Marko posts it.
 
-**Status:** asked.
+**Status:** composed 22.10.2026 in the Create post dialog on his profile (Chrome): plain text in his style, English then Croatian, the page link, the app screenshot (the Major chord sounding). Not posted. The audience was "Only me", left for him to change.
 

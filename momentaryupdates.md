@@ -460,5 +460,5 @@
 
 1. The SEQ numbers (which CUSTOM preset is step 1, 2 …) are kept across restarts, as the presets are; the Launchkey's pads light again at once after a restart.
 
-**Status:** built.
+**Status:** tested 22.10.2026 (numbered 1 and 2, force-stopped, reopened: still 1 and 2); released as v27 with everything since v15.
 

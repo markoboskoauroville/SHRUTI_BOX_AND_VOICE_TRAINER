@@ -444,3 +444,13 @@
 
 **Status:** v25 tested 22.10.2026: the Launchkey answered CC 104 = 3 (Fixed) and CC 106 = 127 (the fixed value) — the reason soft and hard sounded the same; NORMAL from the app's settings → the keyboard confirmed CC 104 = 1; Marko played soft (velocities 3–11) and hard (80–123). So 0 Soft, 1 Normal, 2 Hard, 3 Fixed, as the Launchkey's own menu. Piano v22–v24 "sounds good" (Marko).
 
+## v26 — requested 22.10.2026: it plays on in the background; ✕ releases everything
+
+> "please make my app not release anything in the background, even the MIDI control the sound. Basically it can work in the background fully functional if it's not in the focus in my Android phone Pixel 7. Then what I want you to do is add X next to the gear icon, because if it's working in background, how can I disable it only by going to the settings of the app and then force killing it? That's not practical for everyday user, my dear. What is practical to have that X button like we have in our Swift apps, and then you just press X and everything is released" (Marko, 22.10.2026)
+
+1. Out of focus (Home, another app, the screen off) the app keeps everything: the sound, the MIDI keyboard, the sequencer and the pads (a media-playback foreground service with its notification).
+2. ✕ beside the gear: everything is released (sound, MIDI, the Launchkey back to standalone, the service) and the app closes; the notification has the same stop.
+3. Back on the box sends the app to the background instead of closing it.
+
+**Status:** asked.
+

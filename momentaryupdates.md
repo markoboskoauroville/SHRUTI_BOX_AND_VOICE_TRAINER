@@ -308,5 +308,5 @@
 1. A Tibetan singing bowl on the page, as after a sound bath: a tap on it rings the bowl and opens Marko's Revolut payment link, so the money goes straight to his Revolut account.
 2. In the manifest: whenever Marko asks for a donation on a page, this bowl is used.
 
-**Status:** asked; waiting for his revolut.me link.
+**Status:** live 22.10.2026 on mantrashrutiandvoicetrainer.pages.dev (#donate): the bowl is a photoreal Nano Banana Pro render; a tap rings a synthesised singing bowl, drops a coin and opens https://revolut.me/mbosko0612. Kit and rules in MANTRA_MANIFEST (donation-bowl.md, payment-links.md).
 

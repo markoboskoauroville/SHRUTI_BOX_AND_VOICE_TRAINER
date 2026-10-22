@@ -291,6 +291,77 @@
   </div>
 </section>
 
+<!-- THE DONATION BOWL (MANTRA_MANIFEST modules/donation-bowl.md). Paste this block into any page where Marko asks for
+     donations; set data-revolut to his revolut.me link. A tap rings a Tibetan singing bowl (synthesised, nothing
+     downloaded), a coin falls into it, and his Revolut payment page opens in a new tab: the money goes straight to him.
+     Self-contained: its own styles (scoped to .mantra-bowl) and script; no library, no tracking. The picture is
+     tibetan-bowl.jpg beside this file: put it at img/tibetan-bowl.jpg on the page. -->
+<section class="mantra-bowl" id="donate" style="border-top:1px solid var(--faint)" data-revolut="https://revolut.me/mbosko0612" aria-label="Support Marko Mantra">
+  <style>
+    .mantra-bowl { --brass1: #f3c97a; --brass2: #b8812f; --brass3: #6e4413; --glow: rgba(255, 196, 120, .45);
+      text-align: center; padding: 64px 16px; }
+    .mantra-bowl h2 { margin: 0 0 10px; }
+    .mantra-bowl p { max-width: 34em; margin: 0 auto 26px; color: inherit; opacity: .8; }
+    .mantra-bowl button { background: none; border: 0; padding: 0; cursor: pointer; position: relative; display: inline-block; -webkit-tap-highlight-color: transparent; }
+    .mantra-bowl button:focus-visible { outline: 2px solid var(--brass1); outline-offset: 8px; border-radius: 20px; }
+    .mantra-bowl img { width: min(360px, 82vw); height: auto; display: block; border-radius: 24px; transition: transform .4s ease, filter .4s ease; }
+    .mantra-bowl button:hover img { transform: translateY(-3px); filter: brightness(1.08); }
+    .mantra-bowl .ring { position: absolute; left: 50%; top: 36%; width: 60%; aspect-ratio: 3 / 1; border: 2px solid var(--glow); border-radius: 50%;
+      transform: translate(-50%, -50%) scale(.6); opacity: 0; pointer-events: none; }
+    .mantra-bowl.ringing .ring { animation: mantra-bowl-ring 2.4s ease-out forwards; }
+    .mantra-bowl.ringing .ring.r2 { animation-delay: .5s; }
+    .mantra-bowl.ringing .ring.r3 { animation-delay: 1s; }
+    @keyframes mantra-bowl-ring { 0% { opacity: .9; transform: translate(-50%, -50%) scale(.6); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); } }
+    .mantra-bowl .coin { position: absolute; left: 50%; top: -18%; width: 30px; height: 30px; margin-left: -15px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #fff4d0, #e8b64e 55%, #8a5a14); box-shadow: 0 0 14px var(--glow); opacity: 0; pointer-events: none; }
+    .mantra-bowl.ringing .coin { animation: mantra-bowl-coin 1s cubic-bezier(.5, 0, .9, .6) forwards; }
+    @keyframes mantra-bowl-coin { 0% { opacity: 0; transform: translateY(0) rotateX(0); } 15% { opacity: 1; } 85% { opacity: 1; transform: translateY(170px) rotateX(720deg); } 100% { opacity: 0; transform: translateY(180px) rotateX(760deg); } }
+    .mantra-bowl .hint { display: block; margin-top: 18px; font-size: 14px; opacity: .65; letter-spacing: .08em; }
+    @media (prefers-reduced-motion: reduce) { .mantra-bowl.ringing .ring, .mantra-bowl.ringing .coin { animation: none; } }
+  </style>
+  <h2>Put something in the bowl</h2>
+  <p>After a sound bath, a bowl waits by the door. This app is free and always will be; if it helps your practice, ring the bowl and leave a gift. It goes straight to Marko, and keeps a struggling artist making music.</p>
+  <button type="button" aria-label="Ring the bowl and give on Revolut">
+    <span class="ring"></span><span class="ring r2"></span><span class="ring r3"></span><span class="coin"></span>
+    <!-- the bowl: a photoreal Nano Banana Pro render on black (donation-bowl.md); copy tibetan-bowl.jpg next to the page -->
+    <img src="img/tibetan-bowl.jpg" alt="A Tibetan singing bowl on a red cushion, coins inside" width="900" height="900">
+    <span class="hint">TAP THE BOWL · GIVE ON REVOLUT</span>
+  </button>
+  <script>
+  (() => {
+    const box = document.currentScript.closest('.mantra-bowl');
+    const link = box.dataset.revolut;
+    const button = box.querySelector('button');
+    // A singing bowl's voice: a low fundamental with inharmonic partials (about 1, 2.76, 5.4, 8.9 times), each part a
+    // pair a few tenths of a hertz apart so the tone beats ("wah-wah"), a soft strike and a long fading hum.
+    function ring() {
+      const Ctx = window.AudioContext || window.webkitAudioContext; if (!Ctx) return;
+      const ac = new Ctx(), now = ac.currentTime, out = ac.createGain();
+      out.gain.value = 0.32; out.connect(ac.destination);
+      const f0 = 196;
+      [[1, 1, 9], [2.76, .5, 6], [5.4, .25, 4], [8.93, .12, 2.5]].forEach(([k, amp, dur]) => {
+        [0, 0.6].forEach(detune => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine'; o.frequency.value = f0 * k + detune;
+          g.gain.setValueAtTime(0, now);
+          g.gain.linearRampToValueAtTime(amp / 2, now + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+          o.connect(g); g.connect(out); o.start(now); o.stop(now + dur + 0.1);
+        });
+      });
+      setTimeout(() => ac.close(), 10000);
+    }
+    button.addEventListener('click', () => {
+      ring();
+      box.classList.remove('ringing'); void box.offsetWidth; box.classList.add('ringing');
+      // opened inside the tap itself, so no browser treats it as a pop-up
+      const w = window.open(link, '_blank', 'noopener');
+      if (!w) location.href = link;
+    });
+  })();
+  </script>
+</section>
+
 <div class="cta">
   <div class="wrap">
     <h2>Your drone is waiting</h2>

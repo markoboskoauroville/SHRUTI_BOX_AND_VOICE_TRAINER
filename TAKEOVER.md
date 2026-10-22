@@ -20,6 +20,18 @@ now and give it to me to download."*
 | 11 | A MIDI controller plays it (Launchkey Mini MK4 25 by USB): keys held, velocity | Marko: held keys "It works"; velocity built, his Launchkey sends a fixed 127 |
 | 12 | Every key at its own pitch (free reeds), the box follows the octave played, ◀ ▶, Android's gear | on the Pixel 7 by adb |
 | 13 | Shruti Box and Voice Trainer: trainer difficulty and range, CUSTOM presets (save, ✎), sequencer with BPM and XFADE | on the Pixel 7 by adb, every piece tapped and screenshot |
+| 14–19 | Landscape = the box alone; octave labels; Launchkey in DAW mode (pads = sequencer steps, lit; knobs = valve loudness, Shift = upper valves; pitch strip bend, mod strip vibrato; the display shows values) | Marko: pads, knob 1, pitch, modulation confirmed; knobs 2–8 and Shift not yet |
+| 20–21 | Band-limited wavetables (no aliasing on high notes, "car alarm" gone); 88 piano keys A0–C8, names without minus | verified through the Pixel mic |
+| 22–24 | Salamander Grand piano as a second sound (60 AAC samples, 2.5 MB, CC BY 3.0), decoded in 3.3 s | Marko: "Piano sounds good" |
+| 25 | KEYBOARD VELOCITY in settings sets the Launchkey's velocity curve (feature control CC 104); it was on Fixed | Marko: soft 3–11, hard 80–123 |
+| 26 | Plays on in the background (media-playback foreground service + notification with Stop); ✕ beside the gear releases everything; Back = background | Marko: "it works in the background" |
+| 27 | The sequencer numbering kept across restarts. **Released as v27** (the page serves it) | by adb, restart checked |
+
+## The page
+
+https://mantrashrutiandvoicetrainer.pages.dev (`site/`, Cloudflare Pages, deploy with wrangler as in site/README.md): the
+newest release behind "Download the latest version", the Novation section, all equipment in one frame (Amazon tag
+markomantresh-21), the Salamander credit, the Tibetan bowl, the favicon = the app icon. Linked from the biography's Kod tab.
 
 ## Next, if he asks
 

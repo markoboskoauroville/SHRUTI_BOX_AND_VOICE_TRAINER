@@ -9,3 +9,9 @@
 3. **The emulator said `unauthorized`** (21.10.2026): its quick-boot snapshot kept an old adb authorisation; a cold
    boot (`-no-snapshot-load`, headless with `-no-window -no-audio`) fixed it. 60 % CPU on the emulator is its software
    drawing of one frame per tick; worth watching on the phone.
+
+## 22.10.2026
+- The Launchkey Mini MK4 can be set fully from the app in DAW mode: feature controls are CCs on channel 7 of its DAW port (asked on channel 8). CC 104 = keys velocity curve (0 soft, 1 normal, 2 hard, 3 fixed) — his keyboard was on Fixed, which is why every note came at 127.
+- The Oct −/+ buttons send nothing over MIDI (Ableton reads them only from the notes after); follow the octave from the incoming note numbers.
+- A run loop on withFrameNanos stops when the screen is off; the sequencer needs its own clock (delay loop) to play in the background.
+- Naive wavetables alias above ~C6; one table per octave band (harmonics ≤ 0.45 fs) fixed it.

@@ -347,5 +347,9 @@
 1. On the page: only the title and the Tibetan bowl.
 2. A tap: the bowl rings, then the bowl gives way to the giving panel (Revolut button, his QR code, a way back); the bowl is not shown with the panel.
 
-**Status:** asked.
+> "You need to write under the ball. Click on the ball to donate." (Marko, 22.10.2026)
+
+3. Under the bowl: "Click on the bowl to donate".
+
+**Status:** live 22.10.2026, both steps tested in Chrome on a local copy (the bowl with its line; after the click the bowl fades and the panel shows the Give with Revolut button, the QR @mbosko0612 and "back to the bowl"). On the way the download section was cut by a replacement and put back above the bowl (checked live); the line under the bowl was black on black until the button inherited the page colour.
 

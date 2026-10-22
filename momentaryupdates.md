@@ -260,6 +260,10 @@
 
 7. The hero lifestyle image: remove the extra cable; only the one USB-C cable, from the top of the keyboard to the phone.
 
+> "Also, one part is missing. To charge the phone at the same time we're using the MIDI controller, I want to promote this device. Look at this." (Marko, 22.10.2026, with a screenshot of the StarTech 4-Port USB-C Hub HB31CM4CPD3: 4× USB-C, 10 Gbps, 100 W Power Delivery pass-through, 32 cm cable)
+
+8. On the page: play and charge at once, the StarTech HB31CM4CPD3 hub between the phone, the MIDI keyboard and a USB-C charger, with its diagram.
+
 6. At the end: a message to Svemir in spoken Croatian (thanks for the inspiration, the app, the page's link), shown in a code box, and pasted into his WhatsApp chat (WhatsApp Web from the bookmarks bar, Chrome profile auroville.community) without sending it.
 
 **Status:** v13 released (22.10.2026). The page is live at https://mantrashrutiandvoicetrainer.pages.dev (features, details, history from France to India with sources, six mantras, six verified YouTube videos, the v13 APK served from the page, two Nano Banana images and four screenshots), opened in Chrome. The message to Svemir is pasted in his WhatsApp chat, not sent. The hero image's extra cable: being fixed.

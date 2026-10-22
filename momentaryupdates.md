@@ -420,3 +420,12 @@
 
 **Status:** asked; Oct ± being tested.
 
+## v22 — requested 22.10.2026: a piano beside the shruti box
+
+> "also turn this up in the piano. Find free piano samples which are the best quality. Which industry is a praising or you can maybe use wave table. Something which doesn't take much space. Try to find some good balance between size and quality. That's app which people download, so no big files. Piano and Shruti Box 2 sounds" (Marko, 22.10.2026)
+
+1. Two sounds: Shruti Box (the reeds) and Piano.
+2. The piano from the best free samples the industry praises (or a wavetable), small enough for a downloaded app: a balance of size and quality.
+
+**Status:** researching the samples.
+

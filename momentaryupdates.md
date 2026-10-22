@@ -172,3 +172,11 @@
 1. The list of notes beside RESET becomes a row of buttons, one per sounding note, like the valves.
 2. A short tap on a button steps its note: full (0 dB, the button full of light) → half (−12 dB, half full) → a line
    at its foot (−24 dB) → full again. The long press and its menu (and OFF) are gone.
+
+## v11 — requested 22.10.2026: a MIDI controller plays the box
+
+> "we are working on Shruti app. Please see wireless debugging. There is Pixel phone 7 ready to test camera is also there active and it is pointed to MIDI controller. You can also use my mantra camera. You have all the data about it because we programmed it and now make it also available to fully control through ADB. So you can, for example, if its picture is too dark, you can turn on the light on my camera. If picture is in wrong exposure, you can adjust exposure parameters in the camera. If there is wrong white balance, you can adjust that. So make ADB controller for my mantra camera which is already installed and check if it's latest version. And then for Shruti box, you will see on the camera there is a MIDI controller through camera you can see what it is. Find the right model and make this MIDI controller control my Shruti box. Let's do that first" (Marko, 22.10.2026)
+
+1. The MIDI controller in front of the Pixel 7's camera (its model found from the camera) plays the shruti box: its keys or pads open and close the valves.
+
+**Status:** asked.

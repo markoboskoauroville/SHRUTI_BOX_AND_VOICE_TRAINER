@@ -216,5 +216,13 @@
 4. A CUSTOM tab beside DRONES, RAGAS, CHORDS: his own presets, renamed as he likes.
 5. Saving one: after the note buttons beside RESET, a save icon stores what sounds on the screen as a new CUSTOM preset.
 
+> "A long press on auto sets its difficulty." (Marko, 22.10.2026)
+
+6. A long press on AUTO sets the difficulty (±20 / ±40 / ±60 %), as well as settings.
+
+> "Please also rename the repository and the application. It's called Shruti Box and Voice Trainer." (Marko, 22.10.2026)
+
+7. The app and its repository are named Shruti Box and Voice Trainer.
+
 **Status:** asked.
 

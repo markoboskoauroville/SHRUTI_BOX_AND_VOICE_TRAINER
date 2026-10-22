@@ -34,7 +34,7 @@ class ReedsTest {
     @Test fun belowSaHasNoValve() = assertEquals(null, Shruti.valveInWindow(0, 0, 47))
     @Test fun octaveUpMovesTheWindow() { assertEquals(0, Shruti.valveInWindow(0, 1, 60)); assertEquals(12, Shruti.valveInWindow(0, 1, 72)); assertEquals(null, Shruti.valveInWindow(0, 1, 48)) }
     @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveInWindow(2, 0, 50)); assertEquals(null, Shruti.valveInWindow(2, 0, 48)) }
-    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(null, Shruti.octaveFor(0, 120)) }
+    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 60)); assertEquals(2, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(null, Shruti.octaveFor(0, 120)) }
     @Test fun noteFreqIsTheValvesPitch() { assertEquals(Shruti.freq(0, 0), Shruti.noteFreq(48), 1e-9); assertEquals(Shruti.freq(0, 12) * 2, Shruti.noteFreq(72), 1e-9) }
     @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
     @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }

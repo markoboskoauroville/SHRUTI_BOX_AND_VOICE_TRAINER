@@ -325,5 +325,9 @@
 
 1. At the bottom of the page the download comes first, then the Tibetan bowl, so whoever scrolls to the end meets the download before the bowl.
 
-**Status:** asked.
+> "top download icon for downloading the application should be removed. Only button one exists next to Tibetan ball" (Marko, 22.10.2026)
+
+2. The only download button on the page is the one above the bowl; the one at the top goes.
+
+**Status:** done 22.10.2026: the download section stands just above the bowl (checked on the live page); the top button is removed and its install note moved under the remaining button.
 

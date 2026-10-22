@@ -1,4 +1,13 @@
-# Mantra Shruti Box
+# Shruti Box and Voice Trainer
+
+**v13 (22.10.2026), the version in a breath:** a shruti box of thirteen glowing valves, synthesised reeds that breathe;
+41 presets (drones, ragas, chords) and CUSTOM, his own, saved from the notes with the save icon, named with ✎ and played
+in turn by a sequencer (one beat each, BPM, XFADE); a voice trainer whose AUTO walks a range of the 88 keys at ±20, ±40
+or ±60 % (a long press on AUTO); a MIDI keyboard plays it, every key at its own pitch, held, velocity-sensitive, the box
+following the octave played (◀ ▶ move it by hand). Named Shruti Box and Voice Trainer on Marko's word (22.10.2026),
+repository SHRUTI_BOX_AND_VOICE_TRAINER (was MANTRA_SHRUTI_BOX).
+
+## Before v13
 
 A shruti box for Android. Since v4 every preset of the reference page is in it: five tabs (Basic, Middle, Advanced drones, Ragas, Chords), 41 cards, a tap opens the preset's valves in the current key (`Presets.kt`). Since v3 the valves are laid out as on Marko's reference page (`reference-v2-layout.html`): eight of about 2:1 along the bottom, the five above them over the gaps, each showing its Western note and Indian name, with Reset, the sounding notes and the interval or chord they make under the box. Since v2 (21.10.2026) it is no longer a picture of a wooden box: the whole portrait screen is
 the instrument, black, with thirteen light-blue capsules placed as on a shruti box's reed plate (the eight of the scale
@@ -9,7 +18,7 @@ through it. v1 (the teak box from `reference-shruti-box.png`) is in the history.
 
 - **The box.** Eight tabs on the lower row: Sa Re Ga ma Pa Dha Ni Sa'. Five on the upper row, between them, as on a
   keyboard: re ga Ma dha ni. An open valve slides out of the plate and glows while its reed sounds.
-- **KEY**, under the box: C to B moves Sa (C3 to B3), remembered.
+- **◀ Sa = C3 ▶**, under the box (v12): the box an octave down or up, Sa from C1 to B5. **KEY** (C to B) is in settings.
 - **OFF**, top right, closes every valve. **vN** beside it opens the latest build (version-visible.md).
 - The screen stays on while a reed sounds. The sound stops when the app leaves the screen.
 

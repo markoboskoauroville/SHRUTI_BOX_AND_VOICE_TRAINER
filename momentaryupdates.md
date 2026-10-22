@@ -187,7 +187,7 @@
 
 3. Velocity: how hard a key is struck sets how loud its reed sounds, for every key.
 
-**Status:** in progress. The controller is a Novation Launchkey Mini MK4 25 on the Pixel's USB; the first build (test branch, build 53) opened it and the low C reached the box, but toggled. The second (held keys) tried by Marko 22.10.2026: "It works".
+**Status:** done in the app (v11). Marko played soft and hard: every press reached the phone as velocity 127, so the Launchkey is set to a fixed velocity on the keyboard itself. Status before: The controller is a Novation Launchkey Mini MK4 25 on the Pixel's USB; the first build (test branch, build 53) opened it and the low C reached the box, but toggled. The second (held keys) tried by Marko 22.10.2026: "It works".
 
 ## v12 — requested 22.10.2026: the whole keyboard at its own pitch, and ◀ ▶ for the octave
 
@@ -204,7 +204,7 @@
 
 4. The screen follows the keyboard: a key in another octave moves the box there (what is shown and what the valves play), and lights its valve. While other keys are held, a key outside sounds at its own pitch without moving the box, so held notes never jump.
 
-**Status:** asked.
+**Status:** v12 22.10.2026, built and tested (free reeds, octave window, Android's gear from Material Icons' path); ◀ ▶ tried by adb on v13. The keyboard's own octaves not yet played by Marko.
 
 ## v13 — requested 22.10.2026: the trainer's difficulty and range, and CUSTOM presets
 
@@ -232,7 +232,7 @@
 
 9. XFADE in the sequencer: one chord fades out while the next fades in, over a time he sets there.
 
-**Status:** asked.
+**Status:** v13 22.10.2026, built (test branch), installed on the Pixel 7 and tried by adb taps: the save icon after the notes, the name asked at once ("Morning Drone", "Evening Fourth"), the CUSTOM tab with SEQ, ▶ SEQUENCE / ■ STOP, 30 BPM, XFADE 1.5 s (the fade seen mid-way on a screenshot), the numbers 1 and 2, AUTO ±20, settings' DIFFICULTY and RANGE C3–C4, ▶ to Sa = C4. Released as v13 from main. Not tried by Marko's hand yet; the two test presets stay on his phone (✎ deletes them).
 
 ## The release and its page — requested 22.10.2026
 

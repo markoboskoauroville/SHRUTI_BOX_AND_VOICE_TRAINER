@@ -258,13 +258,17 @@
 
 > "Also, please edit the image. The image is great, but it has an extra cable going out of it that's wrong. There is only one USB-C cable at the top of the device, this one which is on the side. It's an AI error. Please fix it." — "I'm talking about lifestyle and hero image." (Marko, 22.10.2026)
 
-7. The hero lifestyle image: remove the extra cable; only the one USB-C cable, from the top of the keyboard to the phone.
+7. The hero lifestyle image: remove the extra cable; only the one USB-C cable, from the top of the keyboard to the phone. — **Done 22.10.2026:** Gemini edits and new generations kept a cable along the front; Marko edited the original in imgtoimg.ai's AI Image Editor himself; that image is the hero (published, checked byte for byte).
 
 > "Also, one part is missing. To charge the phone at the same time we're using the MIDI controller, I want to promote this device. Look at this." (Marko, 22.10.2026, with a screenshot of the StarTech 4-Port USB-C Hub HB31CM4CPD3: 4× USB-C, 10 Gbps, 100 W Power Delivery pass-through, 32 cm cable)
 
 > "Also find me alternatives to this device on Amazon Germany. You can open Amazon Germany with Chrome extension for Claude, and then you find the same device with metal build. This is plastic build. Power delivery is very important, and it's very important to have only USB-C ports. Find me an alternative." (Marko, 22.10.2026)
 
 > "Please learn from a repository called Elevate Media. When we do this kind of sheets for characters, sheets for props, sheets for spaces, and also pencil sketches, you need to work in this way. Give reference for everything you can even find web images of these devices so everything looks like in real life. You need to write references. Read all the manifest from that Elevate Media." (Marko, 22.10.2026)
+
+> "On the website we need to promote the right USB hub, which is the metal one and has a good price on Amazon. This one, the plastic one, is unfortunately a scam." (Marko, 22.10.2026)
+
+11. The page promotes the metal StarTech 309B-USBC-HUB (amazon.de, €37.81 on 22.10.2026), not the plastic HB31CM4CPD3. — **Done 22.10.2026:** section "Play for hours: charge while you play" with the three-step hookup and the amazon.de link; the plastic hub is not named.
 
 10. Images are made the Elevate Media way: reference sheets (characters, props, spaces, pencil sketches), real web photos of the devices as references, and the references written down.
 

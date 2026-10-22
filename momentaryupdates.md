@@ -462,3 +462,11 @@
 
 **Status:** tested 22.10.2026 (numbered 1 and 2, force-stopped, reopened: still 1 and 2); released as v27 with everything since v15.
 
+
+## 22.10.2026: every page has a favicon, the app's own icon
+
+> "please in manifest it's written, but you're not doing this. Every page needs fav icon. Please put it on shruti box on shruti page. Of course we will make it the same as application icon. Now that makes sense. Also for the dj app it makes sense, so please do that now and in the future" (Marko, 22.10.2026)
+
+1. mantrashrutiandvoicetrainer.pages.dev gets a favicon made from the app's launcher icon; the DJ app page the same with DJ Mantra's icon; every page from now on.
+
+**Status:** asked.

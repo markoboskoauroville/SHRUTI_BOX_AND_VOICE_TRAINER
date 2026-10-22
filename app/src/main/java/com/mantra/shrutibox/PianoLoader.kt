@@ -27,7 +27,8 @@ object PianoLoader {
                 .onSuccess { (data, rate) -> out += PianoSample(midi, layer, data, rate) }
                 .onFailure { Log.w("ShrutiPiano", "could not decode $f: ${it.message}") }
         }
-        Log.i("ShrutiPiano", "loaded ${out.size} piano samples")
+        Log.i("ShrutiPiano", "loaded ${out.size} piano samples, " + if (out.isEmpty()) "none" else
+            "frames ${out.minOf { it.data.size }} … ${out.maxOf { it.data.size }}, rate ${out.first().rate}, peak ${out.maxOf { s -> s.data.maxOfOrNull { kotlin.math.abs(it.toInt()) } ?: 0 }}")
         return out
     }
 

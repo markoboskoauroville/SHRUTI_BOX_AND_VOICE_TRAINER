@@ -377,7 +377,8 @@ private fun ShrutiScreen(
         // while AUTO runs, a tapped valve is the new beginning of the walk (v8)
         if (auto) { startAuto(Shruti.saNote(key, octave) + v); return }
         scaleRun = null; arpRun = null; seqRun = null
-        val now = !open[v]; open[v] = now; mixer.setOpen(v, now); if (now) { target = v; armed = false }
+        val now = !open[v]; open[v] = now; mixer.setOpen(v, now)
+        if (mixer.instrument == 1) android.util.Log.d("ShrutiPiano", "valve $v ${if (now) "on" else "off"}: voices ${mixer.piano.count()}, sample sets ${mixer.piano.samples.size}"); if (now) { target = v; armed = false }
     }
     fun closeAll() { scaleRun = null; arpRun = null; seqRun = null; mixer.closeAll(); for (i in 0 until Shruti.COUNT) open[i] = false; chosen = null }
     /** ARP on or off; a card that sounds changes at once between its chord and its arpeggio. */

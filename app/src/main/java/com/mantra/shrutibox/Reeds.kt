@@ -243,7 +243,16 @@ class Mixer(private val sampleRate: Int) {
             bellows = (bellows + bellowsStep) % 1.0
             val air = 1.0 + BELLOWS_DEPTH * sin(2 * PI * bellows)
             // v22: the piano instead of the reeds, bent by the strips like them
-            if (instrument == 1) { out[s] = tanh(piano.next(bend) * PIANO_LEVEL).toFloat(); continue }
+            if (instrument == 1) {
+                // the valves still glow with their gains, which the reeds' ramps keep; the sound is the piano's
+                for (v in 0 until Shruti.COUNT) {
+                    val to = if (open[v]) volume[v] else 0.0
+                    val scale = max(volume[v], gain[v])
+                    gain[v] = if (gain[v] < to) minOf(to, gain[v] + up * to) else max(to, gain[v] - down * scale)
+                }
+                out[s] = tanh(piano.next(bend) * PIANO_LEVEL).toFloat()
+                continue
+            }
             var sum = 0.0
             for (v in 0 until Shruti.COUNT) {
                 val to = if (open[v]) volume[v] else 0.0

@@ -243,6 +243,13 @@ private fun openLatest(c: Context) {
 private fun chosenPresetValves(tabs: List<PresetTab>, chosen: Pair<Int, Int>?): List<Int> =
     chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i)?.valves }.orEmpty()
 
+/** v17: the valves under the Launchkey's knobs, the eight lower ones, and with Shift the five upper ones. */
+private val LOWER_VALVES = listOf(0, 2, 4, 5, 7, 9, 11, 12)
+private val UPPER_VALVES = listOf(1, 3, 6, 8, 10)
+/** Novation's palette (velocity of a pad's note): a light blue for a numbered step, white for the step that sounds. */
+private const val PAD_NUMBERED = 41
+private const val PAD_PLAYING = 3
+
 /** A CUSTOM card (v13): his name, the notes it opens. */
 private fun customPreset(name: String, valves: List<Int>) =
     Preset(name, "", valves.sorted().joinToString(" ") { Shruti.NAMES[it.coerceIn(0, Shruti.COUNT - 1)] }, "", valves.sorted())
@@ -279,6 +286,12 @@ private fun ShrutiScreen(
     var seqMode by remember { mutableStateOf(false) }
     val seqOrder = remember { mutableStateListOf<Int>() }
     var seqRun by remember { mutableStateOf<SeqRun?>(null) }
+    // v17: the step that sounds now (running or pressed on a pad), for the Launchkey's pad lights
+    var seqStep by remember { mutableStateOf<Int?>(null) }
+    var launchkeyEpoch by remember { mutableIntStateOf(0) }
+    // v17: each valve's knob, 0 … 1 on top of its level button; Shift held turns knobs 1–5 to the upper valves
+    val knobGain = remember { DoubleArray(Shruti.COUNT) { 1.0 } }
+    var shiftHeld by remember { mutableStateOf(false) }
     var tab by remember { mutableIntStateOf(startTab.coerceIn(0, tabs.size - 1)) }
     // the card that was tapped, as tab and place: ten ragas share Sa Pa Sa', so the valves alone cannot say which
     var chosen by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -339,7 +352,7 @@ private fun ShrutiScreen(
             val q = seqRun
             // XFADE (v13): while the sequencer runs, one chord fades out as the next fades in, over his time
             mixer.crossfadeS = if (q != null && settings.xfade) settings.xfadeS.toDouble() else 0.0
-            if (q != null) { q.bpm = settings.bpm; if (q.tick(now / 1e9)) sound(q.valves) }
+            if (q != null) { q.bpm = settings.bpm; if (q.tick(now / 1e9)) { sound(q.valves); seqStep = q.index } }
             val r = run
             if (r != null && r.tick(now / 1e9, readout.percent)) {
                 when (r.phase) {
@@ -399,8 +412,22 @@ private fun ShrutiScreen(
     // unless other keys are held: then it sounds as a free reed at its own pitch, unlit, so the held notes never jump.
     // How hard a key is struck sets its loudness, on top of the note's own level ("make it velocity sensitive"). A pad in
     // Drum mode (channel 10, notes 36–51, the Launchkey's default) chooses that card of the open tab when it goes down.
+    // v17: a pad triggers its step: while the sequencer runs it jumps there, otherwise that step simply sounds
+    fun triggerStep(i: Int) {
+        val steps = seqOrder.mapNotNull { custom.getOrNull(it)?.valves }
+        if (i >= steps.size) return
+        val q = seqRun
+        if (q != null) q.jump(i)
+        sound(steps[i]); seqStep = i
+    }
     val sounding = remember { HashMap<Int, Int>() }                  // a key that is down → its valve, or -1 for a free reed
-    val onMidi by rememberUpdatedState<(Int, Int, Int) -> Unit> { ch, raw, vel ->
+    val onMidi by rememberUpdatedState<(Int, Int, Int, Int) -> Unit> { port, ch, raw, vel ->
+        // v17: the Launchkey's pads in DAW mode (its second port): the sequencer's steps, top row 1–8, bottom row 9–16
+        if (port == 1) {
+            val step = when (raw) { in 96..103 -> raw - 96; in 112..119 -> raw - 112 + 8; else -> -1 }
+            if (step >= 0 && vel > 0) triggerStep(step)
+            return@rememberUpdatedState
+        }
         val pad = raw - 36
         // the keys play as many octaves higher or lower as ◀ ▶ moved them (v16); the pads stay as they are
         val note = if (ch == 9) raw else raw + 12 * kbShift
@@ -412,18 +439,47 @@ private fun ShrutiScreen(
             if (v == null) { sounding[note] = -1; mixer.setNote(note, true, Loudness.velocity(vel)) }
             else {
                 sounding[note] = v
-                mixer.setVolume(v, Loudness.gain(levels[v]) * Loudness.velocity(vel))
+                mixer.setVolume(v, Loudness.gain(levels[v]) * knobGain[v] * Loudness.velocity(vel))
                 when { auto -> startAuto(note); !open[v] -> toggle(v) }  // while AUTO runs a key is the walk's new beginning
             }
         } else {
             when (val v = sounding.remove(note)) {
                 null -> Unit
                 -1 -> mixer.setNote(note, false)
-                else -> if (!sounding.containsValue(v)) { mixer.setVolume(v, Loudness.gain(levels[v])); if (open[v] && !auto) toggle(v) }
+                else -> if (!sounding.containsValue(v)) { mixer.setVolume(v, Loudness.gain(levels[v]) * knobGain[v]); if (open[v] && !auto) toggle(v) }
             }
         }
     }
-    DisposableEffect(midi) { midi.onNote = { ch, note, vel -> onMidi(ch, note, vel) }; onDispose { midi.onNote = null } }
+    // v17: the knobs (DAW mode: CC 85–92; standalone: CC 21–28) set the loudness of the eight lower valves, Sa to Sa',
+    // or with Shift held knobs 1–5 the five upper ones; the modulation strip (CC 1) is vibrato, the pitch strip bends
+    val onControl by rememberUpdatedState<(Int, Int, Int, Int) -> Unit> { _, _, cc, value ->
+        when {
+            cc == 1 -> mixer.vibrato = value / 127.0
+            cc == 63 -> shiftHeld = value > 0
+            cc in 85..92 || cc in 21..28 -> {
+                val k = if (cc >= 85) cc - 85 else cc - 21
+                val valve = if (shiftHeld && k < UPPER_VALVES.size) UPPER_VALVES[k] else LOWER_VALVES[k]
+                knobGain[valve] = value / 127.0
+                mixer.setVolume(valve, Loudness.gain(levels[valve]) * knobGain[valve])
+                midi.launchkeyText(Shruti.NAMES[valve] + " " + noteName(Shruti.saNote(key, octave) + valve), "${(value * 100) / 127} %")
+            }
+        }
+    }
+    DisposableEffect(midi) {
+        midi.onNote = { port, ch, note, vel -> onMidi(port, ch, note, vel) }
+        midi.onCc = { port, ch, cc, v -> onControl(port, ch, cc, v) }
+        midi.onBend = { _, v -> mixer.bendSemis = (v - 8192) / 8192.0 * 2.0 }
+        midi.onLaunchkey = { launchkeyEpoch++ }
+        onDispose { midi.onNote = null; midi.onCc = null; midi.onBend = null; midi.onLaunchkey = null }
+    }
+
+    // the pad lights: dark with no step, the app's blue for a numbered preset, white for the step that sounds
+    LaunchedEffect(seqOrder.toList(), seqStep, launchkeyEpoch) {
+        for (i in 0 until 16) {
+            val note = if (i < 8) 96 + i else 112 + i - 8
+            midi.padColour(note, when { i >= seqOrder.size -> 0; i == seqStep -> PAD_PLAYING; else -> PAD_NUMBERED })
+        }
+    }
 
     // ◀ ▶ (v16): the box moves, the keys follow it by the same octaves, and the Launchkey's display says it the way its
     // own Octave buttons do: "Octave" over "+1 (C3 - C5)", its 25 keys from the lowest to the highest ("---" past 127)
@@ -459,11 +515,11 @@ private fun ShrutiScreen(
         seqOrder.clear(); seqOrder.addAll(kept)
     }
     fun toggleSequence() {
-        if (seqRun != null) { seqRun = null; closeAll(); return }
+        if (seqRun != null) { seqRun = null; seqStep = null; closeAll(); return }
         val steps = seqOrder.mapNotNull { custom.getOrNull(it)?.valves }
         if (steps.isEmpty()) return
         run = null; auto = false; scaleRun = null; arpRun = null; chosen = null
-        val q = SeqRun(steps, settings.bpm); sound(q.valves); seqRun = q
+        val q = SeqRun(steps, settings.bpm); sound(q.valves); seqRun = q; seqStep = 0
     }
 
     BackHandler(enabled = inSettings) { inSettings = false; onSettings() }
@@ -481,7 +537,7 @@ private fun ShrutiScreen(
         val land = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val notes: @Composable () -> Unit = {
             if (if (land) settings.landNotes else settings.showNotes) NotesRow(openValves, noteButtons, levels, key, pal, anyOpen, cardName, onSave = { saveCustom() }, onLevel = { v ->
-                val i = Loudness.next(levels[v]); levels[v] = i; mixer.setVolume(v, Loudness.gain(i)); onLevel(v, i)
+                val i = Loudness.next(levels[v]); levels[v] = i; mixer.setVolume(v, Loudness.gain(i) * knobGain[v]); onLevel(v, i)
             }) { closeAll() }
         }
         val keys: @Composable () -> Unit = { if (if (land) settings.landOctave else settings.showKeys) OctaveRow(octave, key, pal) { arrowOctave(it) } }
@@ -788,7 +844,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
             style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = if (midiNames.isEmpty()) pal.line else pal.light)
         )
         BasicText(
-            "a key held opens its valve and released closes it, as loud as it is struck, at its own pitch; the box moves to the octave you play; its pads in Drum mode choose the cards of the open tab",
+            "a key held opens its valve and released closes it, as loud as it is struck, at its own pitch; the box follows its Octave buttons; the pitch strip bends, the modulation strip adds vibrato; the eight knobs set the loudness of Sa … Sa' (with Shift: re ga Ma dha ni); the pads are the sequencer's steps, lit while numbered and white while they sound",
             style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)),
             modifier = Modifier.padding(top = 4.dp)
         )

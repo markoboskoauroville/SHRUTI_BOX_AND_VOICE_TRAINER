@@ -127,6 +127,9 @@ class SeqRun(val steps: List<List<Int>>, var bpm: Int) {
     val valves: List<Int> get() = steps[index % steps.size]
     private var since = Double.NaN
 
+    /** v17, a pad pressed while it runs: that step now, its beat counted from here. */
+    fun jump(i: Int) { index = i.coerceIn(0, steps.size - 1); since = Double.NaN }
+
     /** Moves on to [now] (seconds); true when the next step begins. */
     fun tick(now: Double): Boolean {
         if (since.isNaN()) since = now

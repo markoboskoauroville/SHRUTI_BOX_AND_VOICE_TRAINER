@@ -49,6 +49,7 @@ class ReedsTest {
         val slow = Mixer(rate); slow.crossfadeS = 2.0; slow.setOpen(0, true); peak(slow, 0.3)
         assertTrue(slow.level(0) < 0.3 && quick.level(0) > 0.99)
     }
+    @Test fun aBentReedStillSounds() { val m = Mixer(rate); m.bendSemis = 2.0; m.vibrato = 1.0; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }
     @Test fun eightyEightKeys() = assertEquals(88, AutoRun.PIANO.count())
     @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
     @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }

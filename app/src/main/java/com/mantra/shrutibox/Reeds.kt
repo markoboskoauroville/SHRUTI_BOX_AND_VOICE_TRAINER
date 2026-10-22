@@ -147,6 +147,11 @@ class Mixer(private val sampleRate: Int) {
     private val phaseB = DoubleArray(Shruti.COUNT) { it * 0.37 % 1.0 }
     private var bellows = 0.0
     private var norm = 1.0
+    /** v17, the Launchkey's pitch strip: every reed bent by this many semitones (−2 … +2). */
+    @Volatile var bendSemis: Double = 0.0
+    /** v17, the modulation strip: vibrato depth 0 … 1 (1 = ±40 cents at 5.5 Hz). */
+    @Volatile var vibrato: Double = 0.0
+    private var vibPhase = 0.0
     /** v13 XFADE: when above 0, every reed swells and fades over this many seconds (the sequencer's crossfade). */
     @Volatile var crossfadeS: Double = 0.0
     private var up = 1.0 / (ATTACK_S * sampleRate)
@@ -185,7 +190,11 @@ class Mixer(private val sampleRate: Int) {
         val xf = crossfadeS
         up = 1.0 / ((if (xf > 0) xf else ATTACK_S) * sampleRate)
         down = 1.0 / ((if (xf > 0) xf else RELEASE_S) * sampleRate)
-        val shift = 2.0.pow(octave.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE).toDouble())
+        // the strips: a bend and a vibrato for the whole block (a block is a few milliseconds, so the wobble is smooth)
+        vibPhase = (vibPhase + 5.5 * n / sampleRate) % 1.0
+        val cents = bendSemis * 100.0 + vibrato * 40.0 * sin(2 * PI * vibPhase)
+        val bend = 2.0.pow(cents / 1200.0)
+        val shift = 2.0.pow(octave.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE).toDouble()) * bend
         val step = DoubleArray(Shruti.COUNT) { Shruti.freq(k, it) * shift / sampleRate }
         val bellowsStep = BELLOWS_HZ / sampleRate
         val count = max(1, (0 until Shruti.COUNT).count { open[it] && volume[it] > 0.0 } + noteOpen.count { it })
@@ -216,7 +225,7 @@ class Mixer(private val sampleRate: Int) {
                 val scale = max(noteVolume[nt], noteGain[nt])
                 noteGain[nt] = if (noteGain[nt] < to) minOf(to, noteGain[nt] + up * to) else max(to, noteGain[nt] - (if (quick) fast else down) * scale)
                 if (noteGain[nt] == 0.0) continue
-                val st = Shruti.noteFreq(nt) / sampleRate
+                val st = Shruti.noteFreq(nt) * bend / sampleRate
                 notePhaseA[nt] = (notePhaseA[nt] + st) % 1.0
                 notePhaseB[nt] = (notePhaseB[nt] + st * detune) % 1.0
                 val a = table[(notePhaseA[nt] * Wave.SIZE).toInt() % Wave.SIZE]

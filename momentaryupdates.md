@@ -260,3 +260,12 @@
 
 **Status:** asked.
 
+## v14 — requested 22.10.2026: landscape is the box alone, full screen
+
+> "Now the lifestyle image showed me something I don't have in my app, actually, and we need to build that in the app. Shruti box and that is in the landscape mode. There should be only keyboard, nothing additional. There landscape mode is for full screen keyboard. That's it. In a setting, you can just have settings in landscape mode, additional panels so user can add if he wants something extra. But by default it's empty. It's just a keyboard in immersive view with our Shruti box." (Marko, 22.10.2026)
+
+1. Landscape is the shruti box alone, filling the screen, immersive: nothing else by default.
+2. Settings, LANDSCAPE PANELS: the extra parts he may add beside the box there (notes, trainer, presets, octave), all off by default.
+
+**Status:** asked.
+

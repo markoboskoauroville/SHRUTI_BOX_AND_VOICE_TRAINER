@@ -410,3 +410,13 @@
 
 **Status:** tested 22.10.2026: "Pitch is registering in the display" (Marko).
 
+## v21 — requested 22.10.2026: the 88 piano keys, names without minus, Oct ± moves the box at once
+
+> "just fix these labels on the buttons. You put minus c vision keyboard one remove minus. Please also two way communication. If I go to my octa plus or octa minus, it's triggering the application directly. It's shifting the display man. And the lowest c is too low. Please find a range which makes sense. Please see the keyboard, the regular piano keys. What is the frequency of the lowest key? What is the frequency of the highest key? So we have 88 keys matching the piano" (Marko, 22.10.2026)
+
+1. The range is the piano's 88 keys: A0 (27.5 Hz, MIDI 21) to C8 (4186 Hz, MIDI 108); the box from Sa = C1 to Sa = C7 (its Sa' is C8); keys outside the piano are not played.
+2. Names without a minus: the piano's own names, A0 … C8, middle C = C4.
+3. The Launchkey's Oct − / + move the box at once (if the keyboard reports them), not only when a key is played.
+
+**Status:** asked; Oct ± being tested.
+

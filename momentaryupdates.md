@@ -469,4 +469,4 @@
 
 1. mantrashrutiandvoicetrainer.pages.dev gets a favicon made from the app's launcher icon; the DJ app page the same with DJ Mantra's icon; every page from now on.
 
-**Status:** asked.
+**Status:** done 22.10.2026: favicon.svg from the launcher icon (MANTRA_MANIFEST kits/favicon/vector2svg.py), apple-touch-icon.png, favicon.ico; live, all three 200. The rule is in design-language.md §16.

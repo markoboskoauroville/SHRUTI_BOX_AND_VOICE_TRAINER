@@ -27,16 +27,20 @@ class ReedsTest {
     @Test fun fiveUpperValves() = assertEquals(5, (0 until 13).count { Shruti.isUpperRow(it) })
     @Test fun saAndPaOnTheLowerRow() { assertFalse(Shruti.isUpperRow(0)); assertFalse(Shruti.isUpperRow(7)); assertFalse(Shruti.isUpperRow(12)) }
 
-    // v11: the MIDI keyboard's keys fold onto the thirteen valves
-    @Test fun c3IsSaInC() = assertEquals(0, Shruti.valveForNote(0, 48))
-    @Test fun c4AndC5AreUpperSa() { assertEquals(12, Shruti.valveForNote(0, 60)); assertEquals(12, Shruti.valveForNote(0, 72)) }
-    @Test fun g3AndG4ArePa() { assertEquals(7, Shruti.valveForNote(0, 55)); assertEquals(7, Shruti.valveForNote(0, 67)) }
-    @Test fun aLowCIsSa() = assertEquals(0, Shruti.valveForNote(0, 36))
-    @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveForNote(2, 50)); assertEquals(10, Shruti.valveForNote(2, 48)); assertEquals(12, Shruti.valveForNote(2, 62)) }
+    // v12: the keyboard at its own pitch; only the octave on the screen has valves, and it follows the keyboard
+    @Test fun c3IsSaInC() = assertEquals(0, Shruti.valveInWindow(0, 0, 48))
+    @Test fun c4IsUpperSa() = assertEquals(12, Shruti.valveInWindow(0, 0, 60))
+    @Test fun c5HasNoValve() = assertEquals(null, Shruti.valveInWindow(0, 0, 72))
+    @Test fun belowSaHasNoValve() = assertEquals(null, Shruti.valveInWindow(0, 0, 47))
+    @Test fun octaveUpMovesTheWindow() { assertEquals(0, Shruti.valveInWindow(0, 1, 60)); assertEquals(12, Shruti.valveInWindow(0, 1, 72)); assertEquals(null, Shruti.valveInWindow(0, 1, 48)) }
+    @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveInWindow(2, 0, 50)); assertEquals(null, Shruti.valveInWindow(2, 0, 48)) }
+    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(null, Shruti.octaveFor(0, 120)) }
+    @Test fun noteFreqIsTheValvesPitch() { assertEquals(Shruti.freq(0, 0), Shruti.noteFreq(48), 1e-9); assertEquals(Shruti.freq(0, 12) * 2, Shruti.noteFreq(72), 1e-9) }
+    @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
+    @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }
     @Test fun fullVelocityIsFull() = assertEquals(1.0, Loudness.velocity(127), 1e-9)
     @Test fun softestVelocityIsMinus24dB() = assertEquals(Loudness.gain(2), Loudness.velocity(1) , 0.01)
     @Test fun velocityRises() = assertTrue((2..127).all { Loudness.velocity(it) > Loudness.velocity(it - 1) })
-    @Test fun everyNoteIsAValve() = assertTrue((0..127).all { Shruti.valveForNote(5, it) in 0 until Shruti.COUNT })
 
     @Test fun westernFollowsTheKey() { assertEquals("D", Shruti.western(2, 0)); assertEquals("A", Shruti.western(2, 7)); assertEquals("C", Shruti.western(0, 12)) }
     @Test fun detectsNothingWhenClosed() = assertEquals("", Shruti.detect(0, emptyList()))

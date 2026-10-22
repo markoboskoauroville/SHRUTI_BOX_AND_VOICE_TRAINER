@@ -46,15 +46,25 @@ object Shruti {
     /** The lower row of the reed plate holds the seven notes of the scale and the upper Sa; the upper row the five between. */
     fun isUpperRow(valve: Int): Boolean = valve in setOf(1, 3, 6, 8, 10)
 
+    /** How far ◀ ▶ move the box (v12): Sa from C1 to B5. */
+    const val LOWEST_OCTAVE = -2
+    const val HIGHEST_OCTAVE = 2
+
+    /** The MIDI note of the box's Sa: C3 (48) in C, moved by the key and by whole octaves. */
+    fun saNote(key: Int, octave: Int): Int = 48 + key.coerceIn(0, 11) + 12 * octave.coerceIn(LOWEST_OCTAVE, HIGHEST_OCTAVE)
+
     /**
-     * The valve a MIDI key opens (v11): every octave of the keyboard folds onto Sa … Ni, and a Sa an octave or more
-     * above the box's own Sa (MIDI 48 + key, C3 in C) is the upper Sa. A Launchkey Mini 25 in C: C3 is Sa, C4 and C5 Sa'.
+     * The valve a MIDI key opens (v12, Marko: "the octaves are matching, so it's not repeating"): a key inside the octave
+     * on the screen, Sa to Sa', is that valve; any other key has none and sounds as a free reed at its own pitch.
      */
-    fun valveForNote(key: Int, note: Int): Int {
-        val above = note - (48 + key.coerceIn(0, 11))
-        val step = Math.floorMod(above, 12)
-        return if (step == 0 && above >= 12) 12 else step
-    }
+    fun valveInWindow(key: Int, octave: Int, note: Int): Int? = (note - saNote(key, octave)).takeIf { it in 0 until COUNT }
+
+    /** The octave that puts MIDI [note] on the screen, Sa to Ni (v12, the box follows the keyboard); null beyond ◀ ▶'s reach. */
+    fun octaveFor(key: Int, note: Int): Int? =
+        Math.floorDiv(note - 48 - key.coerceIn(0, 11), 12).takeIf { it in LOWEST_OCTAVE..HIGHEST_OCTAVE }
+
+    /** A MIDI note's own pitch, equal temperament from C3 = 48. */
+    fun noteFreq(note: Int): Double = C3 * 2.0.pow((note - 48) / 12.0)
 
     /** The Western name of valve [valve] in key [key]: Sa in D is D. */
     fun western(key: Int, valve: Int): String = KEYS[(key.coerceIn(0, 11) + valve) % 12]
@@ -118,7 +128,15 @@ class Mixer(private val sampleRate: Int) {
     }
 
     @Volatile var key: Int = 0
+    /** Whole octaves the box is moved by ◀ ▶ (v12): the valves sound this many octaves from C3. */
+    @Volatile var octave: Int = 0
     private val open = BooleanArray(Shruti.COUNT)
+    // v12: the free reeds, one for every MIDI note, for the keys outside the octave on the screen (no valve, no light)
+    private val noteOpen = BooleanArray(128)
+    private val noteVolume = DoubleArray(128) { 1.0 }
+    private val noteGain = DoubleArray(128)
+    private val notePhaseA = DoubleArray(128)
+    private val notePhaseB = DoubleArray(128) { it * 0.37 % 1.0 }
     /** Each reed's loudness (v10, its button beside RESET): 1 is 0 dB; 0 would leave the reed silent even when open. */
     private val volume = DoubleArray(Shruti.COUNT) { 1.0 }
     private val gain = DoubleArray(Shruti.COUNT)
@@ -134,9 +152,16 @@ class Mixer(private val sampleRate: Int) {
 
     @Synchronized fun setOpen(valve: Int, isOpen: Boolean) { if (valve in 0 until Shruti.COUNT) open[valve] = isOpen }
     @Synchronized fun isOpen(valve: Int): Boolean = valve in 0 until Shruti.COUNT && open[valve]
-    @Synchronized fun closeAll() { open.fill(false) }
+    @Synchronized fun closeAll() { open.fill(false); noteOpen.fill(false) }
     /** Closes every valve and silences the box at once (the voice trainer's VOICE, v6): no 0.35 s tail. */
-    @Synchronized fun hush() { open.fill(false); quick = true }
+    @Synchronized fun hush() { open.fill(false); noteOpen.fill(false); quick = true }
+    /** A free reed (v12): MIDI [note] sounding at its own pitch, at [volume] (1 = 0 dB), or let go. */
+    @Synchronized fun setNote(note: Int, isOpen: Boolean, volume: Double = 1.0) {
+        if (note !in 0..127) return
+        noteOpen[note] = isOpen
+        if (isOpen) noteVolume[note] = volume.coerceIn(0.0, 1.0)
+    }
+    @Synchronized fun isNoteOpen(note: Int): Boolean = note in 0..127 && noteOpen[note]
     @Synchronized fun openCount(): Int = open.count { it }
     /** How far each reed is sounding, 0 to 1, for the screen. */
     @Synchronized fun level(valve: Int): Double =
@@ -152,9 +177,10 @@ class Mixer(private val sampleRate: Int) {
         val table = Wave.table
         val k = key
         val detune = 2.0.pow(DETUNE_CENTS / 1200.0)
-        val step = DoubleArray(Shruti.COUNT) { Shruti.freq(k, it) / sampleRate }
+        val shift = 2.0.pow(octave.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE).toDouble())
+        val step = DoubleArray(Shruti.COUNT) { Shruti.freq(k, it) * shift / sampleRate }
         val bellowsStep = BELLOWS_HZ / sampleRate
-        val count = max(1, (0 until Shruti.COUNT).count { open[it] && volume[it] > 0.0 })
+        val count = max(1, (0 until Shruti.COUNT).count { open[it] && volume[it] > 0.0 } + noteOpen.count { it })
         // Many reeds together are louder: the level follows the square root of how many are open, smoothly, so
         // opening a seventh valve does not jump the other six
         val target = 1.0 / sqrt(count.toDouble())
@@ -175,8 +201,22 @@ class Mixer(private val sampleRate: Int) {
                 val b = table[(phaseB[v] * Wave.SIZE).toInt() % Wave.SIZE]
                 sum += gain[v] * (a + b) * 0.5
             }
+            // the free reeds: the same reed, fades and beating, at the note's own pitch
+            for (nt in 0 until 128) {
+                val to = if (noteOpen[nt]) noteVolume[nt] else 0.0
+                if (to == 0.0 && noteGain[nt] == 0.0) continue
+                val scale = max(noteVolume[nt], noteGain[nt])
+                noteGain[nt] = if (noteGain[nt] < to) minOf(to, noteGain[nt] + up * to) else max(to, noteGain[nt] - (if (quick) fast else down) * scale)
+                if (noteGain[nt] == 0.0) continue
+                val st = Shruti.noteFreq(nt) / sampleRate
+                notePhaseA[nt] = (notePhaseA[nt] + st) % 1.0
+                notePhaseB[nt] = (notePhaseB[nt] + st * detune) % 1.0
+                val a = table[(notePhaseA[nt] * Wave.SIZE).toInt() % Wave.SIZE]
+                val b = table[(notePhaseB[nt] * Wave.SIZE).toInt() % Wave.SIZE]
+                sum += noteGain[nt] * (a + b) * 0.5
+            }
             out[s] = tanh(sum * norm * air * LEVEL * 1.6).toFloat()
         }
-        if (quick && gain.all { it == 0.0 }) quick = false
+        if (quick && gain.all { it == 0.0 } && noteGain.all { it == 0.0 }) quick = false
     }
 }

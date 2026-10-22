@@ -73,6 +73,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -155,6 +156,7 @@ class MainActivity : ComponentActivity() {
         }
         val prefs = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         engine.mixer.key = prefs.getInt("key", 0).coerceIn(0, 11)
+        engine.mixer.octave = prefs.getInt("octave", 0).coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE)
         // each valve's loudness, kept like the key: 0 = 0 dB, 1 = −12 dB, 2 = −24 dB (v9's OFF comes back full)
         val levels = IntArray(Shruti.COUNT) { prefs.getInt("level$it", 0).let { l -> if (l in Loudness.LABELS.indices) l else 0 } }
         levels.forEachIndexed { v, i -> engine.mixer.setVolume(v, Loudness.gain(i)) }
@@ -174,6 +176,7 @@ class MainActivity : ComponentActivity() {
                 startLevels = levels,
                 onLevel = { v, i -> prefs.edit { putInt("level$v", i) } },
                 onKey = { prefs.edit { putInt("key", it) } },
+                onOctave = { prefs.edit { putInt("octave", it) } },
                 onTab = { prefs.edit { putInt("tab", it) } },
                 onSettings = { settings.save(prefs); fixLayout(settings.landscape) },
                 onAnyOpen = { open ->
@@ -219,11 +222,14 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 @Composable
 private fun ShrutiScreen(
     mixer: Mixer, ear: Ear, midi: Midi, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
-    startLevels: IntArray, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
+    startLevels: IntArray, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onOctave: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
     onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
     var key by remember { mutableIntStateOf(mixer.key) }
+    // v12: whole octaves the box is moved, by ◀ ▶ or by the keyboard playing in another octave
+    var octave by remember { mutableIntStateOf(mixer.octave) }
+    fun moveOctave(o: Int) { val c = o.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE); if (c != octave) { octave = c; mixer.octave = c; onOctave(c) } }
     var tab by remember { mutableIntStateOf(startTab.coerceIn(0, Presets.TABS.size - 1)) }
     // the card that was tapped, as tab and place: ten ragas share Sa Pa Sa', so the valves alone cannot say which
     var chosen by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -321,25 +327,30 @@ private fun ShrutiScreen(
     }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
-    // the MIDI controller (v11): a key held opens its valve, released closes it (Marko: "when I press it's open, and
-    // when I stop pressing it's closed"), every octave folded onto the box; C4 and C5 both hold Sa', so a valve closes
-    // when the last of its keys is up. A pad in Drum mode (channel 10, notes 36–51, the Launchkey's default) chooses
-    // that card of the open tab when it goes down. How hard a key is struck sets how loud its reed sounds, on top of the
-    // note's own level (Marko: "make it velocity sensitive"); a valve opened on the screen sounds at its level.
-    val held = remember { IntArray(Shruti.COUNT) }
+    // the MIDI controller (v11, v12): a key held opens its valve, released closes it (Marko: "when I press it's open, and
+    // when I stop pressing it's closed"), every key at its own pitch ("the octaves are matching, so it's not repeating").
+    // A key in another octave moves the box there and lights its valve ("the view shifts to that octave automatically"),
+    // unless other keys are held: then it sounds as a free reed at its own pitch, unlit, so the held notes never jump.
+    // How hard a key is struck sets its loudness, on top of the note's own level ("make it velocity sensitive"). A pad in
+    // Drum mode (channel 10, notes 36–51, the Launchkey's default) chooses that card of the open tab when it goes down.
+    val sounding = remember { HashMap<Int, Int>() }                  // a key that is down → its valve, or -1 for a free reed
     val onMidi by rememberUpdatedState<(Int, Int, Int) -> Unit> { ch, note, vel ->
-        val down = vel > 0
         val pad = note - 36
-        if (ch == 9 && pad in 0..15) { if (down && pad < Presets.TABS[tab].presets.size) choose(tab, pad) }
-        else {
-            val v = Shruti.valveForNote(key, note)
-            held[v] = maxOf(0, held[v] + if (down) 1 else -1)
-            val full = Loudness.gain(levels[v])
-            if (down) mixer.setVolume(v, full * Loudness.velocity(vel)) else if (held[v] == 0) mixer.setVolume(v, full)
-            when {
-                down && auto -> startAuto(v)                    // while AUTO runs a key is the walk's new beginning, as a tap
-                down && !open[v] -> toggle(v)
-                !down && held[v] == 0 && open[v] && !auto -> toggle(v)
+        if (ch == 9 && pad in 0..15) { if (vel > 0 && pad < Presets.TABS[tab].presets.size) choose(tab, pad) }
+        else if (vel > 0) {
+            if (Shruti.valveInWindow(key, octave, note) == null && sounding.isEmpty() && !auto) Shruti.octaveFor(key, note)?.let { moveOctave(it) }
+            val v = Shruti.valveInWindow(key, octave, note)
+            if (v == null) { sounding[note] = -1; mixer.setNote(note, true, Loudness.velocity(vel)) }
+            else {
+                sounding[note] = v
+                mixer.setVolume(v, Loudness.gain(levels[v]) * Loudness.velocity(vel))
+                when { auto -> startAuto(v); !open[v] -> toggle(v) }  // while AUTO runs a key is the walk's new beginning
+            }
+        } else {
+            when (val v = sounding.remove(note)) {
+                null -> Unit
+                -1 -> mixer.setNote(note, false)
+                else -> if (!sounding.containsValue(v)) { mixer.setVolume(v, Loudness.gain(levels[v])); if (open[v] && !auto) toggle(v) }
             }
         }
     }
@@ -349,7 +360,7 @@ private fun ShrutiScreen(
 
     Box(Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout).padding(horizontal = 10.dp, vertical = 10.dp)) {
         if (inSettings) {
-            SettingsScreen(settings, pal, midi.connected.value, onVersion) { inSettings = false; onSettings() }
+            SettingsScreen(settings, pal, midi.connected.value, key, { key = it; mixer.key = it; onKey(it) }, onVersion) { inSettings = false; onSettings() }
             return@Box
         }
         val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks, levels) { toggle(it) } }
@@ -362,7 +373,7 @@ private fun ShrutiScreen(
                 val i = Loudness.next(levels[v]); levels[v] = i; mixer.setVolume(v, Loudness.gain(i)); onLevel(v, i)
             }) { closeAll() }
         }
-        val keys: @Composable () -> Unit = { if (settings.showKeys) KeyRow(key, pal) { key = it; mixer.key = it; onKey(it) } }
+        val keys: @Composable () -> Unit = { if (settings.showKeys) OctaveRow(octave, key, pal) { moveOctave(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
             PresetPanel(tab, chosen, openValves, key, pal, scaleRun != null, arp, arpRun != null, onArp = { toggleArp() }, onScale = { playScale() }, onTab = { tab = it; onTab(it) }) { t, i -> choose(t, i) }
         }
@@ -424,20 +435,19 @@ private fun ShrutiScreen(
     }
 }
 
-/** The settings button: a small gear drawn in the scheme's light, where "SHRUTI" and the version were. */
+/**
+ * The settings button: Android's own settings gear (v12, Marko: "It should look exactly like Android setting icon"),
+ * Material Icons' "settings" path on its 24-unit grid, filled in the scheme's light, its middle open.
+ */
+private const val ANDROID_SETTINGS = "M19.14,12.94c0.04,-0.3 0.06,-0.61 0.06,-0.94c0,-0.32 -0.02,-0.64 -0.07,-0.94l2.03,-1.58c0.18,-0.14 0.23,-0.41 0.12,-0.61l-1.92,-3.32c-0.12,-0.22 -0.37,-0.29 -0.59,-0.22l-2.39,0.96c-0.5,-0.38 -1.03,-0.7 -1.62,-0.94L14.4,2.81c-0.04,-0.24 -0.24,-0.41 -0.48,-0.41h-3.84c-0.24,0 -0.43,0.17 -0.47,0.41L9.25,5.35C8.66,5.59 8.12,5.92 7.63,6.29L5.24,5.33c-0.22,-0.08 -0.47,0 -0.59,0.22L2.74,8.87C2.62,9.08 2.66,9.34 2.86,9.48l2.03,1.58C4.84,11.36 4.8,11.69 4.8,12s0.02,0.64 0.07,0.94l-2.03,1.58c-0.18,0.14 -0.23,0.41 -0.12,0.61l1.92,3.32c0.12,0.22 0.37,0.29 0.59,0.22l2.39,-0.96c0.5,0.38 1.03,0.7 1.62,0.94l0.36,2.54c0.05,0.24 0.24,0.41 0.48,0.41h3.84c0.24,0 0.44,-0.17 0.47,-0.41l0.36,-2.54c0.59,-0.24 1.13,-0.56 1.62,-0.94l2.39,0.96c0.22,0.08 0.47,0 0.59,-0.22l1.92,-3.32c0.12,-0.22 0.07,-0.47 -0.12,-0.61L19.14,12.94zM12,15.6c-1.98,0 -3.6,-1.62 -3.6,-3.6s1.62,-3.6 3.6,-3.6s3.6,1.62 3.6,3.6S13.98,15.6 12,15.6z"
+
 @Composable
 private fun Gear(pal: Palette, onClick: () -> Unit) {
-    Box(Modifier.size(44.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(22.dp)) {
-            val c = center
-            val r = size.minDimension / 2f
-            for (i in 0 until 8) {
-                val a = i * PI / 4
-                drawLine(pal.light.copy(alpha = 0.8f), Offset(c.x + (r * 0.55f) * cos(a).toFloat(), c.y + (r * 0.55f) * sin(a).toFloat()),
-                    Offset(c.x + r * cos(a).toFloat(), c.y + r * sin(a).toFloat()), strokeWidth = r * 0.28f, cap = StrokeCap.Round)
-            }
-            drawCircle(pal.light.copy(alpha = 0.8f), r * 0.62f, c)
-            drawCircle(BLACK, r * 0.28f, c)
+    val gear = remember { androidx.compose.ui.graphics.vector.PathParser().parsePathString(ANDROID_SETTINGS).toPath().apply { fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd } }
+    Box(Modifier.size(48.dp).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(26.dp)) {
+            val k = size.minDimension / 24f
+            withTransform({ scale(k, k, pivot = Offset.Zero) }) { drawPath(gear, pal.light) }
         }
     }
 }
@@ -460,8 +470,24 @@ private fun Pills(labels: List<String>, selected: Int, pal: Palette, height: Int
 }
 
 @Composable
-private fun KeyRow(key: Int, pal: Palette, onKey: (Int) -> Unit) {
-    Box(Modifier.padding(top = 10.dp)) { Pills(Shruti.KEYS, key, pal, onPick = onKey) }
+private fun OctaveRow(octave: Int, key: Int, pal: Palette, onOctave: (Int) -> Unit) {
+    // v12 (Marko: "instead of the list of all the keys at the bottom, just add one two buttons arrow left and right"):
+    // ◀ ▶ move the box an octave down or up; between them, where Sa is now. The key itself is in settings.
+    val low = octave > Shruti.LOWEST_OCTAVE
+    val high = octave < Shruti.HIGHEST_OCTAVE
+    @Composable fun Arrow(glyph: String, on: Boolean, to: Int) = Box(
+        Modifier.size(width = 88.dp, height = 44.dp)
+            .border(1.dp, if (on) pal.light else pal.faint, RoundedCornerShape(22.dp))
+            .clickable(enabled = on) { onOctave(to) },
+        contentAlignment = Alignment.Center
+    ) { BasicText(glyph, style = MONO.copy(fontSize = 18.sp, letterSpacing = 0.sp, color = if (on) pal.light else pal.line)) }
+    Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Arrow("◀", low, octave - 1)
+        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+            BasicText("Sa = ${Shruti.KEYS[key]}${3 + octave}", style = MONO.copy(fontSize = 14.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = pal.light))
+        }
+        Arrow("▶", high, octave + 1)
+    }
 }
 
 /**
@@ -568,7 +594,7 @@ private fun ColumnScope.PresetPanel(
 
 /** Settings (v5): the colour scheme, the layout, which parts show, and the version. Back or DONE returns. */
 @Composable
-private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, onVersion: () -> Unit, onDone: () -> Unit) {
+private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, key: Int, onKey: (Int) -> Unit, onVersion: () -> Unit, onDone: () -> Unit) {
     val head = MONO.copy(fontSize = 11.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.5f))
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -578,6 +604,9 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, o
         }
         BasicText("COLOUR", style = head, modifier = Modifier.padding(top = 18.dp, bottom = 8.dp))
         Pills(PALETTES.map { it.name }, s.palette, pal) { s.palette = it }
+        // v12: the key moved here from under the box, where ◀ ▶ are now
+        BasicText("KEY", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        Pills(Shruti.KEYS, key, pal, height = 40, fontSize = 10, onPick = onKey)
         BasicText("LAYOUT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         Pills(listOf("PORTRAIT", "LANDSCAPE"), if (s.landscape) 1 else 0, pal) { s.landscape = it == 1 }
         BasicText("SHOW", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
@@ -585,7 +614,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, o
             Triple("NAMES ON THE VALVES", s.showNames) { v: Boolean -> s.showNames = v },
             Triple("RESET AND NOTES", s.showNotes) { v: Boolean -> s.showNotes = v },
             Triple("PRESETS", s.showPresets) { v: Boolean -> s.showPresets = v },
-            Triple("KEYS", s.showKeys) { v: Boolean -> s.showKeys = v },
+            Triple("OCTAVE ◀ ▶", s.showKeys) { v: Boolean -> s.showKeys = v },
             Triple("VOICE TRAINER", s.showTrainer) { v: Boolean -> s.showTrainer = v },
         )) {
             Row(
@@ -605,7 +634,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, o
             style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = if (midiNames.isEmpty()) pal.line else pal.light)
         )
         BasicText(
-            "a key held opens its valve and released closes it, as loud as it is struck, every octave folded onto Sa … Sa'; its pads in Drum mode choose the cards of the open tab",
+            "a key held opens its valve and released closes it, as loud as it is struck, at its own pitch; the box moves to the octave you play; its pads in Drum mode choose the cards of the open tab",
             style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)),
             modifier = Modifier.padding(top = 4.dp)
         )

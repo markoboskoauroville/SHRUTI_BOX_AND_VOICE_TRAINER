@@ -442,5 +442,5 @@
 1. Novation's Programmer's Reference v2, feature controls (sent to the DAW port, channel 7; queried on channel 8; reply on channel 7): CC 104 (68h) "Keys velocity curve / Fixed velocity select", CC 106 (6Ah) "Fixed velocity value"; both non-volatile (kept across power cycles). The values are not listed in the guide.
 2. The app asks the keyboard for CC 104 at connect (logged) and offers KEYBOARD VELOCITY in settings (SOFT / NORMAL / HARD / FIXED), sent as CC 104; the meaning of each value to be confirmed by playing.
 
-**Status:** building v25.
+**Status:** v25 tested 22.10.2026: the Launchkey answered CC 104 = 3 (Fixed) and CC 106 = 127 (the fixed value) — the reason soft and hard sounded the same; NORMAL from the app's settings → the keyboard confirmed CC 104 = 1; Marko played soft (velocities 3–11) and hard (80–123). So 0 Soft, 1 Normal, 2 Hard, 3 Fixed, as the Launchkey's own menu. Piano v22–v24 "sounds good" (Marko).
 

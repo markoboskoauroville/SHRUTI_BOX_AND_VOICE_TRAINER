@@ -353,3 +353,112 @@
 
 **Status:** live 22.10.2026, both steps tested in Chrome on a local copy (the bowl with its line; after the click the bowl fades and the panel shows the Give with Revolut button, the QR @mbosko0612 and "back to the bowl"). On the way the download section was cut by a replacement and put back above the bowl (checked live); the line under the bowl was black on black until the button inherited the page colour.
 
+## v16 — requested 22.10.2026: the Launchkey's octaves and the app's octaves as one
+
+> "please go back to my Pixel phone through ADB and use Novation Control. There is a switch on Novation Octave Plus and Minus. You need to find a way to change this switch through this application, and then test all octaves so they are compatible with the application. Right now not everything is displayed, some goes out of the range of this application, so the application doesn't snap to that range. Please check all the ranges from the bottom to the top, and they will be displayed in the same language as this keyboard is displaying it. For example, the lowest octave is 4 C2 C0. You can see matrix display now with camera. Please make this app compatible with this controller, so when I switch octaves with my left and right arrows at the bottom of the screen, it is also triggering the same mechanism inside my MIDI controller. It's shifting the MIDI controller as well to different octaves" (Marko, 22.10.2026)
+
+1. Every octave the Launchkey's Octave − / + reaches is inside the app's range: the box snaps to it, from the lowest to the highest.
+2. Note names in the app as the keyboard's own display writes them.
+3. ◀ ▶ in the app also shift the Launchkey's octave (the controller follows the app), found through the controller's own control interface.
+
+**Status:** asked.
+
+## v17 — requested 22.10.2026: the whole Launchkey drives the app, as it drives Ableton Live
+
+> "are there some other open-source programs which control Novation keyboards? Please search through GitHub and find the codes source code / we can even write to Novation to give us data we need for developing our app to control Novation keyboard Also, Novation keyboard is controlled via Ableton Live and it can control Ableton Live. Are there some protocols we can use from Ableton Live? Ableton Live protocols are very well documented." (Marko, 22.10.2026)
+
+> "ableton Live is controlled also with all these knobs and pads and everything. Let's see what we can use to control our own application with this Novation keyboard using the tricks for Ableton Live ableton Live our application on the phone" (Marko, 22.10.2026)
+
+1. Learn from open-source code that drives Novation keyboards, above all Ableton Live's own Launchkey MK4 MIDI Remote Script.
+2. The app takes the Launchkey in DAW mode, as Ableton does: knobs, pads, arrows, Play and the other buttons control the app; the app lights the pads and writes the display.
+3. A letter to Novation asking for the octave message (drafted for Marko).
+
+> "for now from Novation Control, I only want to control the octave button. That must work. Pitch and modulations ribbons must work. There are eight knobs at the top. They should work with adjusting velocity of each button on the Shruti box on each valve. And we have sequencer also, so the pads are for sequencer. They will light up as the sequencer is running. And also I can trigger the sequencer each step of the sequencer with these sequencing buttons. And it can also light up. So it's off when I select preset, then it's become on. First preset first pad is on. Second preset second pad is on. And then I can trigger them by pressing the tabs itself" (Marko, 22.10.2026)
+
+4. The Launchkey's Octave − / + work: the box follows every octave.
+5. The pitch and modulation strips work (pitch bends the reeds, modulation adds vibrato).
+6. The 8 knobs set the loudness of the valves.
+7. The 16 pads are the sequencer's steps: a pad is dark until a preset gets that number in SEQ (first numbered preset lights pad 1, the second pad 2 …), it glows brighter while its step plays, and a press triggers that step.
+
+**Status:** v17–v20 tested on the Pixel 7 with Marko's hand, 22.10.2026: DAW mode switched on by the app (the Launchkey answers 9F 0C 7F; again after a restart); knob 1 = CC 21 on the DAW port, Sa's loudness, shown on the display; modulation strip = CC 1 (port 0), vibrato; pitch strip = bends on port 0, shown on the display (v20); pads = notes 96–103 / 112–119 on the DAW port, blue while numbered, white while sounding (seen through the camera, the light walking pad 1 → 2 at 30 BPM), a press triggers its step; Oct + followed (note 108 → Sa = C7, names as on the Launchkey). Not yet tried: knobs 2–8 and Shift + knobs. SEQ numbering is not kept across restarts yet.
+
+## The Novation note on the page — requested 22.10.2026
+
+> "please add a note on the website about integration with Novation and what we have implemented" (Marko, 22.10.2026)
+
+1. A section on the page: what the app does with a Novation Launchkey Mini MK4, released together with the build that has it.
+
+> "web page update is the last thing we are doing at the end of the session. You need to ask me now, we are just developing. I just want to put it in your mind so I don't forget to tell you when it's finished. So you need to update" (Marko, 22.10.2026)
+
+2. The page is updated at the end of the session, not now: before closing, ask Marko and then publish the release, the latest APK and the Novation section together.
+
+> "on the website, all equipment which is affiliate links should be in the same frame. Now my keyboard gets special treatment. Everything should be the same. Thank you" (Marko, 22.10.2026)
+
+3. On the page all affiliate equipment (the two hubs and the Launchkey) sits in one frame, each item the same.
+
+**Status:** waiting for the end of the session (ask Marko first): the release with the newest APK, the Novation section, and the equipment in one frame.
+
+## v19 — 22.10.2026: high notes clean (from Marko's octave test)
+
+> "I press the low C key. I mean, first I switch octave, and then I press the low C key, and the sound is very strange" (Marko, 22.10.2026, Launchkey at Octave +5, the low C = C7, note 108)
+
+1. A reed's tone carries only the harmonics that fit under the digital limit at its pitch: at C7 the 28 harmonics reached 117 kHz and folded back as harsh tones (aliasing). Nine tones (28 … 1 harmonics), the richest clean one chosen per reed each block.
+
+**Status:** tested 22.10.2026 through the Pixel's own microphone (scrcpy --audio-source=mic): C7 = 4186 Hz with its harmonics at exactly 2× and 3×, nothing folded back.
+
+## v20 — 22.10.2026: the pitch strip on the display
+
+> "I did it. I don't know what's wrong with pitch. When I'm moving modulation slider, the matrix display is showing the readings, but for this one everything is dead" (Marko, 22.10.2026)
+
+1. The pitch strip did reach the app (bends 772 … 1131, back to 8192), but the Launchkey's own display does not show it; the app now writes "Pitch" over its value in semitones.
+
+**Status:** tested 22.10.2026: "Pitch is registering in the display" (Marko).
+
+## v21 — requested 22.10.2026: the 88 piano keys, names without minus, Oct ± moves the box at once
+
+> "just fix these labels on the buttons. You put minus c vision keyboard one remove minus. Please also two way communication. If I go to my octa plus or octa minus, it's triggering the application directly. It's shifting the display man. And the lowest c is too low. Please find a range which makes sense. Please see the keyboard, the regular piano keys. What is the frequency of the lowest key? What is the frequency of the highest key? So we have 88 keys matching the piano" (Marko, 22.10.2026)
+
+1. The range is the piano's 88 keys: A0 (27.5 Hz, MIDI 21) to C8 (4186 Hz, MIDI 108); the box from Sa = C1 to Sa = C7 (its Sa' is C8); keys outside the piano are not played.
+2. Names without a minus: the piano's own names, A0 … C8, middle C = C4.
+3. The Launchkey's Oct − / + move the box at once (if the keyboard reports them), not only when a key is played.
+
+**Status:** asked; Oct ± being tested.
+
+## v22 — requested 22.10.2026: a piano beside the shruti box
+
+> "also turn this up in the piano. Find free piano samples which are the best quality. Which industry is a praising or you can maybe use wave table. Something which doesn't take much space. Try to find some good balance between size and quality. That's app which people download, so no big files. Piano and Shruti Box 2 sounds" (Marko, 22.10.2026)
+
+1. Two sounds: Shruti Box (the reeds) and Piano.
+2. The piano from the best free samples the industry praises (or a wavetable), small enough for a downloaded app: a balance of size and quality.
+
+> "salamander" (Marko, 22.10.2026, choosing between Salamander Grand Piano V3 and Upright Piano KW)
+
+**Status:** v22 built: Salamander Grand Piano V3 (Yamaha C5, CC BY 3.0), its own 30 notes A0 … C8 every minor third × 2 layers (v5 soft, v13 strong), downloaded alone (88 MB of FLAC instead of the whole set, on the Download Monitor), cut to 5 s with a 1.5 s fade, mono AAC 64 kbps 32 kHz: 2.5 MB in assets/piano. SOUND in settings: SHRUTI BOX | PIANO; the piano plays from the valves, the keys, the presets, the pads and the sequencer, bent by the strips; the credit in settings and the licence beside the samples.
+
+## v25 — requested 22.10.2026: the Launchkey's velocity set from the app
+
+> "Piano sounds good, but I think the issue is velocity is disabled in the settings of the keyboard itself. Read the manual and let me know where I can enable velocity. Or maybe you can in Dove mode. Maybe you can enable and disable velocity of the keys. Then we can do it remotely through the settings in the app" (Marko, 22.10.2026)
+
+1. Novation's Programmer's Reference v2, feature controls (sent to the DAW port, channel 7; queried on channel 8; reply on channel 7): CC 104 (68h) "Keys velocity curve / Fixed velocity select", CC 106 (6Ah) "Fixed velocity value"; both non-volatile (kept across power cycles). The values are not listed in the guide.
+2. The app asks the keyboard for CC 104 at connect (logged) and offers KEYBOARD VELOCITY in settings (SOFT / NORMAL / HARD / FIXED), sent as CC 104; the meaning of each value to be confirmed by playing.
+
+**Status:** v25 tested 22.10.2026: the Launchkey answered CC 104 = 3 (Fixed) and CC 106 = 127 (the fixed value) — the reason soft and hard sounded the same; NORMAL from the app's settings → the keyboard confirmed CC 104 = 1; Marko played soft (velocities 3–11) and hard (80–123). So 0 Soft, 1 Normal, 2 Hard, 3 Fixed, as the Launchkey's own menu. Piano v22–v24 "sounds good" (Marko).
+
+## v26 — requested 22.10.2026: it plays on in the background; ✕ releases everything
+
+> "please make my app not release anything in the background, even the MIDI control the sound. Basically it can work in the background fully functional if it's not in the focus in my Android phone Pixel 7. Then what I want you to do is add X next to the gear icon, because if it's working in background, how can I disable it only by going to the settings of the app and then force killing it? That's not practical for everyday user, my dear. What is practical to have that X button like we have in our Swift apps, and then you just press X and everything is released" (Marko, 22.10.2026)
+
+1. Out of focus (Home, another app, the screen off) the app keeps everything: the sound, the MIDI keyboard, the sequencer and the pads (a media-playback foreground service with its notification).
+2. ✕ beside the gear: everything is released (sound, MIDI, the Launchkey back to standalone, the service) and the app closes; the notification has the same stop.
+3. Back on the box sends the app to the background instead of closing it.
+
+**Status:** v26 tested on the Pixel 7, 22.10.2026: a valve opened, Home pressed → the launcher in front, ShrutiService foreground (type media playback, its notification with Stop), the app's AudioTrack still "started"; ✕ beside the gear → the app closed, no service left, no audio player, the Launchkey released (DAW mode off, "closed"). The sequencer and AUTO now run on their own 8 ms clock instead of screen frames, and the pads are lit from it. Marko confirmed by hand: "I can confirm it works in the background" (the keyboard playing with the app out of focus). (POST_NOTIFICATIONS granted by adb for the test.)
+
+## v27 — 22.10.2026: the sequencer's numbers kept
+
+> "all unfinished tasks: please finish" (Marko, 22.10.2026)
+
+1. The SEQ numbers (which CUSTOM preset is step 1, 2 …) are kept across restarts, as the presets are; the Launchkey's pads light again at once after a restart.
+
+**Status:** tested 22.10.2026 (numbered 1 and 2, force-stopped, reopened: still 1 and 2); released as v27 with everything since v15.
+

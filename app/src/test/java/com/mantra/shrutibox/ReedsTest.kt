@@ -34,7 +34,8 @@ class ReedsTest {
     @Test fun belowSaHasNoValve() = assertEquals(null, Shruti.valveInWindow(0, 0, 47))
     @Test fun octaveUpMovesTheWindow() { assertEquals(0, Shruti.valveInWindow(0, 1, 60)); assertEquals(12, Shruti.valveInWindow(0, 1, 72)); assertEquals(null, Shruti.valveInWindow(0, 1, 48)) }
     @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveInWindow(2, 0, 50)); assertEquals(null, Shruti.valveInWindow(2, 0, 48)) }
-    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 60)); assertEquals(2, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(null, Shruti.octaveFor(0, 120)) }
+    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 60)); assertEquals(2, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(4, Shruti.octaveFor(0, 96)); assertEquals(-2, Shruti.octaveFor(0, 24)); assertEquals(null, Shruti.octaveFor(0, 108)); assertEquals(null, Shruti.octaveFor(0, 23)) }
+    @Test fun thePianoIs88Keys() { assertEquals(88, Shruti.PIANO_KEYS.count()); assertEquals(27.5, Shruti.noteFreq(21), 0.01); assertEquals(4186.0, Shruti.noteFreq(108), 0.1) }
     @Test fun noteFreqIsTheValvesPitch() { assertEquals(Shruti.freq(0, 0), Shruti.noteFreq(48), 1e-9); assertEquals(Shruti.freq(0, 12) * 2, Shruti.noteFreq(72), 1e-9) }
     // v13: the trainer's walk through its range, in MIDI notes
     @Test fun walkC3toC4IsTheMajorScale() = assertEquals(listOf(48, 50, 52, 53, 55, 57, 59, 60), AutoRun.walk(48, 0, AutoRun.MAJOR, 60))
@@ -49,6 +50,22 @@ class ReedsTest {
         val slow = Mixer(rate); slow.crossfadeS = 2.0; slow.setOpen(0, true); peak(slow, 0.3)
         assertTrue(slow.level(0) < 0.3 && quick.level(0) > 0.99)
     }
+    @Test fun aBentReedStillSounds() { val m = Mixer(rate); m.bendSemis = 2.0; m.vibrato = 1.0; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }
+    // v18: no reed ever carries a harmonic past the clean limit, from MIDI 0 to 127, even bent up two semitones
+    @Test fun noNoteAliases() = assertTrue((0..127).all { n -> val st = Shruti.noteFreq(n) * 2.0.pow(2.0 / 12) / rate; Wave.harmonicsFor(st) * st <= 0.45 || Wave.harmonicsFor(st) == 1 })
+    @Test fun lowNotesKeepTheFullReed() = assertEquals(28, Wave.harmonicsFor(Shruti.noteFreq(48) / rate))
+    @Test fun c7IsThinner() = assertTrue(Wave.harmonicsFor(Shruti.noteFreq(108) / rate) <= 5)
+    // v22: the piano, with a made-up sample (a 440 Hz sine, one second)
+    private fun sine(midi: Int, layer: Int) = PianoSample(midi, layer, ShortArray(rate) { (12000 * kotlin.math.sin(2 * Math.PI * 440.0 * it / rate)).toInt().toShort() }, rate)
+    @Test fun pianoGridIsMinorThirds() { assertEquals(21, Piano.nearest(21)); assertEquals(24, Piano.nearest(25)); assertEquals(60, Piano.nearest(60)); assertEquals(108, Piano.nearest(127)) }
+    @Test fun pianoStrikesAndDamps() {
+        val m = Mixer(rate); m.instrument = 1; m.piano.setSamples(listOf(sine(69, 0), sine(69, 1)))
+        m.key = 0; m.octave = 0; m.setVolume(9, 1.0); m.setOpen(9, true)            // Dha in C3 is A3 = 57 → sample 57? nearest(57) = 57
+        m.piano.setSamples(listOf(sine(57, 0), sine(57, 1))); m.setOpen(9, false); m.setOpen(9, true)
+        assertTrue(peak(m, 0.2) > 0.05)
+        m.setOpen(9, false); peak(m, 0.5); assertEquals(0, m.piano.count())
+    }
+    @Test fun pianoSilentWithoutSamples() { val m = Mixer(rate); m.instrument = 1; m.setOpen(0, true); assertTrue(peak(m, 0.2) < 1e-6) }
     @Test fun eightyEightKeys() = assertEquals(88, AutoRun.PIANO.count())
     @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
     @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }

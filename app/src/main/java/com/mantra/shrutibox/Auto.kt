@@ -54,7 +54,7 @@ class AutoRun(val notes: List<Int>, val playS: Double = 3.0, val holdS: Double =
         fun from(start: Int, scale: List<Int>): List<Int> =
             (listOf(start) + scale.filter { it > start } + 12).filter { it in 0..12 && it >= start }.distinct().sorted()
 
-        /** The 88 keys of a piano, A0 to C8, as MIDI notes: the trainer's range is chosen inside them (v13). */
+        /** The 88 keys of a piano, A0 (MIDI 21, 27.5 Hz) to C8 (MIDI 108, 4186 Hz), as MIDI notes: the trainer's range is chosen inside them (v13). */
         val PIANO = 21..108
         /** How close the voice must stay, ± percent of a semitone (v13, Marko: "The hardest part is 20% ... then 40%, then 60%"). */
         val DIFFICULTIES = listOf(20, 40, 60)
@@ -126,6 +126,9 @@ class SeqRun(val steps: List<List<Int>>, var bpm: Int) {
         private set
     val valves: List<Int> get() = steps[index % steps.size]
     private var since = Double.NaN
+
+    /** v17, a pad pressed while it runs: that step now, its beat counted from here. */
+    fun jump(i: Int) { index = i.coerceIn(0, steps.size - 1); since = Double.NaN }
 
     /** Moves on to [now] (seconds); true when the next step begins. */
     fun tick(now: Double): Boolean {

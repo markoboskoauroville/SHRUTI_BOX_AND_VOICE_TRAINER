@@ -331,3 +331,12 @@
 
 **Status:** done 22.10.2026: the download section stands just above the bowl (checked on the live page); the top button is removed and its install note moved under the remaining button.
 
+## Affiliate links — requested 22.10.2026
+
+> "please make affiliate links for this hub and open my shopping basket in my Pixel 7 and see which one I choose to buy. Actually, I deleted others, so there are two options. On Amazon there are also affiliate links for this midi controller" (Marko, 22.10.2026)
+
+1. His basket (Pixel 7, 22.10.2026) kept two of the candidates: the SATECHI USB-C Hub 4-in-1 (100 W PD, 4× USB-C, aluminium) and the GL.iNet Opal. The page promotes the hub he chose, the Satechi.
+2. Amazon affiliate links (his Associates tracking ID) for the hub and for the Novation Launchkey Mini MK4 25 on the page.
+
+**Status:** asked; his Amazon Associates tracking ID needed (none recorded).
+

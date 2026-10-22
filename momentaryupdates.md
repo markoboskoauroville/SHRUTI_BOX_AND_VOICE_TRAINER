@@ -340,3 +340,12 @@
 
 **Status:** done 22.10.2026: Marko signed up for Amazon.de Associates himself (tracking ID markomantresh-21); the page links SATECHI 4-in-1, StarTech 309B and the Launchkey Mini 25 MK4 with the tag and rel=sponsored, and carries Amazon's disclosure line. Payment and tax details in PartnerNet: Marko's, still to do.
 
+## The Mantra payment gateway — requested 22.10.2026
+
+> "Please fix the mantra payment gateway first. What is seen on the page is the title itself, anti-Tibetan ball. When the user clicks on the Tibetan ball, there is a Tibetan ball sound and then comes the technical interface to donate without the ball itself." (Marko, 22.10.2026)
+
+1. On the page: only the title and the Tibetan bowl.
+2. A tap: the bowl rings, then the bowl gives way to the giving panel (Revolut button, his QR code, a way back); the bowl is not shown with the panel.
+
+**Status:** asked.
+

@@ -49,8 +49,13 @@ class Midi(context: Context) {
         override fun onDeviceRemoved(info: MidiDeviceInfo) = detach(info.id)
     }
 
+    private var started = false
+
+    /** v26: once per process; a second call (the screen coming back) changes nothing. */
     fun start() {
+        if (started) return
         val m = manager ?: return
+        started = true
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM).forEach { attach(it) }
             m.registerDeviceCallback(MidiManager.TRANSPORT_MIDI_BYTE_STREAM, { main.post(it) }, callback)
@@ -65,6 +70,8 @@ class Midi(context: Context) {
     }
 
     fun stop() {
+        if (!started) return
+        started = false
         dawMode(false)
         manager?.unregisterDeviceCallback(callback)
         open.keys.toList().forEach { detach(it) }

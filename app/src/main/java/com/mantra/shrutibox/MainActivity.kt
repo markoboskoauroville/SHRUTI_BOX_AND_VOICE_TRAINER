@@ -9,6 +9,7 @@ import android.content.SharedPreferences
 import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.graphics.BlurMaskFilter
+import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
 import android.widget.Toast
@@ -160,7 +161,8 @@ private class Settings(prefs: SharedPreferences) {
 }
 
 class MainActivity : ComponentActivity() {
-    private val engine = Engine()
+    // v26: the sound and the MIDI belong to the process (Background.kt), so they play on out of focus
+    private val engine = Background.engine
     private val ear = Ear()
     private lateinit var midi: Midi
     private val micGranted = mutableStateOf(false)
@@ -181,10 +183,12 @@ class MainActivity : ComponentActivity() {
         val levels = IntArray(Shruti.COUNT) { prefs.getInt("level$it", 0).let { l -> if (l in Loudness.LABELS.indices) l else 0 } }
         levels.forEachIndexed { v, i -> engine.mixer.setVolume(v, Loudness.gain(i)) }
         val settings = Settings(prefs)
-        midi = Midi(this)
+        midi = Background.midi(this)
+        Background.onRelease = { finishAndRemoveTask() }
         // v22: the piano's 60 recordings are decoded once, in the background; the reeds play meanwhile
         engine.mixer.instrument = settings.instrument
-        Thread {
+        if (!Background.pianoLoading) Thread {
+            Background.pianoLoading = true
             val t0 = android.os.SystemClock.uptimeMillis()
             PianoLoader.load(assets) { engine.mixer.piano.setSamples(it) }
             android.util.Log.i("ShrutiPiano", "all decoded in ${android.os.SystemClock.uptimeMillis() - t0} ms")
@@ -213,7 +217,9 @@ class MainActivity : ComponentActivity() {
                     if (open) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                     else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 },
-                onVersion = { openLatest(this) }
+                onVersion = { openLatest(this) },
+                onClose = { Background.releaseAll(this) },
+                onBackground = { moveTaskToBack(true) }
             )
         }
     }
@@ -238,8 +244,19 @@ class MainActivity : ComponentActivity() {
         prefs.edit { putString("custom", a.toString()) }
     }
 
-    override fun onStart() { super.onStart(); engine.start(); midi.start() }
-    override fun onStop() { ear.listen(false); midi.stop(); engine.stop(); super.onStop() }
+    // v26: the screen starts the sound, the MIDI and the service; leaving it lets go only of the microphone (the voice
+    // trainer listens with the app in front). ✕ or the notification's Stop release everything (Background.releaseAll).
+    override fun onStart() {
+        super.onStart()
+        engine.start(); midi.start(); Background.start(this)
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED && !askedNotify) {
+            askedNotify = true; askNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    override fun onStop() { ear.listen(false); super.onStop() }
+    override fun onDestroy() { if (Background.onRelease != null && isFinishing) Background.onRelease = null; super.onDestroy() }
+    private var askedNotify = false
+    private val askNotify = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 }
 
 private fun openLatest(c: Context) {
@@ -280,7 +297,7 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 private fun ShrutiScreen(
     mixer: Mixer, ear: Ear, midi: Midi, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
     startLevels: IntArray, startCustom: List<Preset>, onCustom: (List<Preset>) -> Unit, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onOctave: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
-    onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
+    onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit, onClose: () -> Unit, onBackground: () -> Unit
 ) {
     val open = remember { mutableStateListOf(*Array(Shruti.COUNT) { mixer.isOpen(it) }) }
     var key by remember { mutableIntStateOf(mixer.key) }
@@ -354,8 +371,17 @@ private fun ShrutiScreen(
         val r = AutoRun(AutoRun.walk(startNote, key, autoScale(), settings.rangeHigh), within = settings.within.toDouble())
         run = r; autoDone = false; step++; autoPlay(r)
     }
+    // the pad lights (v17): dark with no step, the app's blue for a numbered preset, white for the step that sounds; called
+    // directly from the clock too (v26), since the screen does not redraw out of focus
+    fun lightPads() {
+        for (i in 0 until 16) {
+            val note = if (i < 8) 96 + i else 112 + i - 8
+            midi.padColour(note, when { i >= seqOrder.size -> 0; i == seqStep -> PAD_PLAYING; else -> PAD_NUMBERED })
+        }
+    }
+    // v26: the runs (scale, arp, sequencer, AUTO) keep their own clock, not the screen's frames, so they go on out of focus
     LaunchedEffect(Unit) {
-        while (isActive) withFrameNanos { now ->
+        while (isActive) { kotlinx.coroutines.delay(8); val now = System.nanoTime()
             val sr = scaleRun
             if (sr != null && sr.tick(now / 1e9)) {
                 if (sr.done) { scaleRun = null; sound(chosenPresetValves(tabs, chosen)) } else sound(listOf(sr.note))
@@ -365,7 +391,7 @@ private fun ShrutiScreen(
             val q = seqRun
             // XFADE (v13): while the sequencer runs, one chord fades out as the next fades in, over his time
             mixer.crossfadeS = if (q != null && settings.xfade) settings.xfadeS.toDouble() else 0.0
-            if (q != null) { q.bpm = settings.bpm; if (q.tick(now / 1e9)) { sound(q.valves); seqStep = q.index } }
+            if (q != null) { q.bpm = settings.bpm; if (q.tick(now / 1e9)) { sound(q.valves); seqStep = q.index; lightPads() } }
             val r = run
             if (r != null && r.tick(now / 1e9, readout.percent)) {
                 when (r.phase) {
@@ -432,7 +458,7 @@ private fun ShrutiScreen(
         if (i >= steps.size) return
         val q = seqRun
         if (q != null) q.jump(i)
-        sound(steps[i]); seqStep = i
+        sound(steps[i]); seqStep = i; lightPads()
     }
     val sounding = remember { HashMap<Int, Int>() }                  // a key that is down → its valve, or -1 for a free reed
     val onMidi by rememberUpdatedState<(Int, Int, Int, Int) -> Unit> { port, ch, raw, vel ->
@@ -499,12 +525,7 @@ private fun ShrutiScreen(
     }
 
     // the pad lights: dark with no step, the app's blue for a numbered preset, white for the step that sounds
-    LaunchedEffect(seqOrder.toList(), seqStep, launchkeyEpoch) {
-        for (i in 0 until 16) {
-            val note = if (i < 8) 96 + i else 112 + i - 8
-            midi.padColour(note, when { i >= seqOrder.size -> 0; i == seqStep -> PAD_PLAYING; else -> PAD_NUMBERED })
-        }
-    }
+    LaunchedEffect(seqOrder.toList(), seqStep, launchkeyEpoch) { lightPads() }
 
     // ◀ ▶ (v16): the box moves, the keys follow it by the same octaves, and the Launchkey's display says it the way its
     // own Octave buttons do: "Octave" over "+1 (C3 - C5)", its 25 keys from the lowest to the highest ("---" past 127)
@@ -548,6 +569,8 @@ private fun ShrutiScreen(
     }
 
     BackHandler(enabled = inSettings) { inSettings = false; onSettings() }
+    // v26: Back on the box sends the app to the background, still playing; ✕ is what closes it
+    BackHandler(enabled = !inSettings) { onBackground() }
 
     Box(Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout).padding(horizontal = 10.dp, vertical = 10.dp)) {
         if (inSettings) {
@@ -574,7 +597,13 @@ private fun ShrutiScreen(
                     onXfade = { settings.xfade = !settings.xfade; onSettings() }, onXfadeS = { settings.xfadeS = it.coerceIn(0.2f, 10f); onSettings() }),
                 onEdit = { editing = it }) { t, i -> choose(t, i) }
         }
-        val gear: @Composable () -> Unit = { Gear(pal) { inSettings = true } }
+        // v26: ✕ beside the gear releases everything and closes the app (as the Swift apps' ✕)
+        val gear: @Composable () -> Unit = {
+            Gear(pal) { inSettings = true }
+            Box(Modifier.size(48.dp).clickable(onClick = onClose), contentAlignment = Alignment.Center) {
+                BasicText("✕", style = MONO.copy(fontSize = 22.sp, letterSpacing = 0.sp, color = pal.light))
+            }
+        }
         val autoStatus = if (!auto) null else run?.let { r ->
             val n = "${Shruti.NAMES[pitchClass(r.note)]} ${noteName(r.note)}"
             "${r.index + 1}/${r.notes.size} " + (if (r.phase == AutoRun.Phase.PLAY) "listen $n" else "sing $n")

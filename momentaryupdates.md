@@ -452,5 +452,5 @@
 2. ✕ beside the gear: everything is released (sound, MIDI, the Launchkey back to standalone, the service) and the app closes; the notification has the same stop.
 3. Back on the box sends the app to the background instead of closing it.
 
-**Status:** asked.
+**Status:** v26 tested on the Pixel 7, 22.10.2026: a valve opened, Home pressed → the launcher in front, ShrutiService foreground (type media playback, its notification with Stop), the app's AudioTrack still "started"; ✕ beside the gear → the app closed, no service left, no audio player, the Launchkey released (DAW mode off, "closed"). The sequencer and AUTO now run on their own 8 ms clock instead of screen frames, and the pads are lit from it. Not yet tried by Marko's hand: playing the keyboard with the app in the background. (POST_NOTIFICATIONS granted by adb for the test.)
 

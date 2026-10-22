@@ -83,7 +83,11 @@ class Midi(context: Context) {
             inputs[info.id] = (0 until info.inputPortCount).mapNotNull { p -> device.openInputPort(p) }
             connected.value = names.values.sorted()
             Log.i(TAG, "open: $name, ${ports.size} port(s)")
-            if (name.contains("Launchkey", ignoreCase = true)) { dawMode(true); main.postDelayed({ onLaunchkey?.invoke() }, 300) }
+            if (name.contains("Launchkey", ignoreCase = true)) {
+                dawMode(true)
+                // v25: what the keyboard's velocity is set to (its answer is logged as port 1 ch 7 cc 104)
+                main.postDelayed({ askFeature(104); askFeature(106); onLaunchkey?.invoke() }, 300)
+            }
         }, main)
     }
 
@@ -113,6 +117,14 @@ class Midi(context: Context) {
 
     /** DAW mode on or off (9F 0C 7F / 9F 0C 00 on the DAW port), as Ableton Live takes the Launchkey. */
     fun dawMode(on: Boolean) = toDaw(byteArrayOf(0x9F.toByte(), 0x0C, if (on) 0x7F else 0x00))
+
+    /**
+     * v25: a Launchkey MK4 feature control (Programmer's Reference v2, p. 21–23): set with a CC on channel 7 of the DAW
+     * port, asked with the same CC on channel 8; the answer comes back on channel 7 (seen in [onCc] as port 1, ch 6).
+     * CC 104 = keys velocity curve / fixed velocity, CC 106 = the fixed velocity value; both kept by the keyboard.
+     */
+    fun setFeature(cc: Int, value: Int) = toDaw(byteArrayOf(0xB6.toByte(), cc.toByte(), value.coerceIn(0, 127).toByte()))
+    fun askFeature(cc: Int) = toDaw(byteArrayOf(0xB7.toByte(), cc.toByte(), 0))
 
     /** One pad's light in DAW mode: a note on channel 1 (stationary) whose velocity is the palette colour, 0 = dark. */
     fun padColour(padNote: Int, colour: Int) = toDaw(byteArrayOf(0x90.toByte(), padNote.toByte(), colour.coerceIn(0, 127).toByte()))

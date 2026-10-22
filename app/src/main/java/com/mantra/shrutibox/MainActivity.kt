@@ -140,6 +140,8 @@ private class Settings(prefs: SharedPreferences) {
     var xfade by mutableStateOf(prefs.getBoolean("xfade", true))
     // v22: the sound, 0 the shruti box, 1 the piano
     var instrument by mutableIntStateOf(prefs.getInt("instrument", 0).coerceIn(0, 1))
+    // v25: the Launchkey's key velocity curve as last set from here (-1 = not set by the app)
+    var kbVelocity by mutableIntStateOf(prefs.getInt("kbVelocity", -1))
     // v14: in landscape the box is alone, full screen; these panels may be added beside it, all off at first
     var landNotes by mutableStateOf(prefs.getBoolean("landNotes", false))
     var landTrainer by mutableStateOf(prefs.getBoolean("landTrainer", false))
@@ -149,7 +151,7 @@ private class Settings(prefs: SharedPreferences) {
 
     fun save(prefs: SharedPreferences) = prefs.edit {
         putInt("within", within); putInt("rangeLow", rangeLow); putInt("rangeHigh", rangeHigh); putInt("bpm", bpm)
-        putBoolean("xfade", xfade); putFloat("xfadeS", xfadeS); putInt("instrument", instrument)
+        putBoolean("xfade", xfade); putFloat("xfadeS", xfadeS); putInt("instrument", instrument); putInt("kbVelocity", kbVelocity)
         putBoolean("landNotes", landNotes); putBoolean("landTrainer", landTrainer); putBoolean("landPresets", landPresets); putBoolean("landOctave", landOctave)
         putInt("palette", palette); putBoolean("landscape", landscape); putBoolean("showNotes", showNotes)
         putBoolean("showPresets", showPresets); putBoolean("showKeys", showKeys); putBoolean("showNames", showNames)
@@ -549,7 +551,7 @@ private fun ShrutiScreen(
 
     Box(Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout).padding(horizontal = 10.dp, vertical = 10.dp)) {
         if (inSettings) {
-            SettingsScreen(settings, pal, midi.connected.value, key, { key = it; mixer.key = it; onKey(it) }, onVersion) { inSettings = false; onSettings() }
+            SettingsScreen(settings, pal, midi.connected.value, key, { key = it; mixer.key = it; onKey(it) }, onVelocity = { midi.setFeature(104, it); midi.askFeature(104) }, onVersion = onVersion) { inSettings = false; onSettings() }
             return@Box
         }
         val box: @Composable () -> Unit = { ValveBox(mixer, open, key, octave, pal, settings.showNames, marks, levels) { toggle(it) } }
@@ -803,7 +805,7 @@ private fun ColumnScope.PresetPanel(
 
 /** Settings (v5): the colour scheme, the layout, which parts show, and the version. Back or DONE returns. */
 @Composable
-private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, key: Int, onKey: (Int) -> Unit, onVersion: () -> Unit, onDone: () -> Unit) {
+private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, key: Int, onKey: (Int) -> Unit, onVelocity: (Int) -> Unit, onVersion: () -> Unit, onDone: () -> Unit) {
     val head = MONO.copy(fontSize = 11.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.5f))
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -879,6 +881,11 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
             "Piano samples: Salamander Grand Piano V3 by Alexander Holm, licensed under CC BY 3.0 (creativecommons.org/licenses/by/3.0). The samples were trimmed, reduced to 30 notes in two layers and re-encoded.",
             style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.6f))
         )
+        // v25: the Launchkey's own key velocity (its feature control CC 104), set from here and kept by the keyboard
+        if (midiNames.any { it.contains("Launchkey", ignoreCase = true) }) {
+            BasicText("KEYBOARD VELOCITY · kept by the Launchkey", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+            Pills(listOf("SOFT", "NORMAL", "HARD", "FIXED"), s.kbVelocity, pal, height = 40, fontSize = 11) { s.kbVelocity = it; onVelocity(it) }
+        }
         BasicText("VERSION", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         BasicText(
             "v${BuildConfig.VERSION_NAME}   latest release →",

@@ -431,3 +431,12 @@
 
 **Status:** v22 built: Salamander Grand Piano V3 (Yamaha C5, CC BY 3.0), its own 30 notes A0 … C8 every minor third × 2 layers (v5 soft, v13 strong), downloaded alone (88 MB of FLAC instead of the whole set, on the Download Monitor), cut to 5 s with a 1.5 s fade, mono AAC 64 kbps 32 kHz: 2.5 MB in assets/piano. SOUND in settings: SHRUTI BOX | PIANO; the piano plays from the valves, the keys, the presets, the pads and the sequencer, bent by the strips; the credit in settings and the licence beside the samples.
 
+## v25 — requested 22.10.2026: the Launchkey's velocity set from the app
+
+> "Piano sounds good, but I think the issue is velocity is disabled in the settings of the keyboard itself. Read the manual and let me know where I can enable velocity. Or maybe you can in Dove mode. Maybe you can enable and disable velocity of the keys. Then we can do it remotely through the settings in the app" (Marko, 22.10.2026)
+
+1. Novation's Programmer's Reference v2, feature controls (sent to the DAW port, channel 7; queried on channel 8; reply on channel 7): CC 104 (68h) "Keys velocity curve / Fixed velocity select", CC 106 (6Ah) "Fixed velocity value"; both non-volatile (kept across power cycles). The values are not listed in the guide.
+2. The app asks the keyboard for CC 104 at connect (logged) and offers KEYBOARD VELOCITY in settings (SOFT / NORMAL / HARD / FIXED), sent as CC 104; the meaning of each value to be confirmed by playing.
+
+**Status:** building v25.
+

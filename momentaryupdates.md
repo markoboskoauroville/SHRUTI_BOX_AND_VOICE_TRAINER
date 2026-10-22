@@ -228,5 +228,9 @@
 
 8. A sequencer in CUSTOM: as in Opening and Closing's Chrome profiles, a tap on a preset gives it the next number; SEQUENCE plays them in that order, round and round; its speed in beats per minute is set in the sequencer itself.
 
+> "In the sequencer itself, add a crossfade button so it's not hard sequencing. Inside the app, inside because it's Shruti Box, it needs to have a smooth transition. One octave or one combination, one let's call it the one chord is playing, and then the sequences go to the second one. So they are fading in and out. Time adjustable." (Marko, 22.10.2026)
+
+9. XFADE in the sequencer: one chord fades out while the next fades in, over a time he sets there.
+
 **Status:** asked.
 

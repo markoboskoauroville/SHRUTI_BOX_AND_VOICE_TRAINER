@@ -338,5 +338,5 @@
 1. His basket (Pixel 7, 22.10.2026) kept two of the candidates: the SATECHI USB-C Hub 4-in-1 (100 W PD, 4× USB-C, aluminium) and the GL.iNet Opal. The page promotes the hub he chose, the Satechi.
 2. Amazon affiliate links (his Associates tracking ID) for the hub and for the Novation Launchkey Mini MK4 25 on the page.
 
-**Status:** asked; his Amazon Associates tracking ID needed (none recorded).
+**Status:** done 22.10.2026: Marko signed up for Amazon.de Associates himself (tracking ID markomantresh-21); the page links SATECHI 4-in-1, StarTech 309B and the Launchkey Mini 25 MK4 with the tag and rel=sponsored, and carries Amazon's disclosure line. Payment and tax details in PartnerNet: Marko's, still to do.
 

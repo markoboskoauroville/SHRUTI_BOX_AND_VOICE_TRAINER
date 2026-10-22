@@ -455,7 +455,7 @@ private fun ShrutiScreen(
             SettingsScreen(settings, pal, midi.connected.value, key, { key = it; mixer.key = it; onKey(it) }, onVersion) { inSettings = false; onSettings() }
             return@Box
         }
-        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks, levels) { toggle(it) } }
+        val box: @Composable () -> Unit = { ValveBox(mixer, open, key, octave, pal, settings.showNames, marks, levels) { toggle(it) } }
         // the chosen card names what sounds (Sus2 and Sus4 on Pa are the same notes; a raga is not a chord)
         val cardName = chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
         // the buttons beside RESET: the notes that sound; while ARP runs, every note of its card, not the one passing by
@@ -994,7 +994,7 @@ private fun NameDialog(name: String, pal: Palette, onDone: (String) -> Unit, onD
 /** The box itself: the thirteen valves, drawn every frame so the glow breathes with the bellows. */
 @Composable
 private fun ValveBox(
-    mixer: Mixer, open: List<Boolean>, key: Int, pal: Palette, showNames: Boolean, marks: Set<Int>, levels: List<Int>,
+    mixer: Mixer, open: List<Boolean>, key: Int, octave: Int, pal: Palette, showNames: Boolean, marks: Set<Int>, levels: List<Int>,
     onToggle: (Int) -> Unit
 ) {
     var frame by remember { mutableLongStateOf(0L) }
@@ -1031,7 +1031,9 @@ private fun ValveBox(
             // the Western note over the Indian name, in the middle of the valve, as on the page
             val ink = if (on) pal.ink else pal.light
             val size = if (vt.upper) 10.sp else 13.sp
-            val west = measurer.measure(Shruti.western(key, vt.valve), MONO.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
+            // v15 (Marko: "I need to see on the keyboard itself that there is C1, C2"): the Western name with its octave,
+            // C3 … C4 in C, moving with ◀ ▶ and the keyboard; the Indian name below stays as it is
+            val west = measurer.measure(noteName(Shruti.saNote(key, octave) + vt.valve), MONO.copy(fontSize = size, letterSpacing = 0.sp, color = ink, fontWeight = FontWeight.Bold))
             val ind = measurer.measure(Shruti.NAMES[vt.valve], MONO.copy(fontSize = size * 0.9f, letterSpacing = 0.sp, color = ink.copy(alpha = 0.7f)))
             val r = vt.rect
             val cy = if (vt.upper) r.top + r.height * 0.5f else r.top + r.height * 0.62f

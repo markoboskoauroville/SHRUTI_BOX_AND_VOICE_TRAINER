@@ -224,5 +224,9 @@
 
 7. The app and its repository are named Shruti Box and Voice Trainer.
 
+> "Please in the custom chords please build a simple sequencer. When user similar is in same logic in now what we build opening for Chrome browser user press on each preset and then it gets the number, and then when user press sequence button this sequences is starting and the speed of the sequence in beats per minute needs to be set in the sequencer itself." (Marko, 22.10.2026)
+
+8. A sequencer in CUSTOM: as in Opening and Closing's Chrome profiles, a tap on a preset gives it the next number; SEQUENCE plays them in that order, round and round; its speed in beats per minute is set in the sequencer itself.
+
 **Status:** asked.
 

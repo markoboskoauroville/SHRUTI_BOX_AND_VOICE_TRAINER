@@ -392,7 +392,11 @@
 
 2. The page is updated at the end of the session, not now: before closing, ask Marko and then publish the release, the latest APK and the Novation section together.
 
-**Status:** waiting for the end of the session (ask Marko first).
+> "on the website, all equipment which is affiliate links should be in the same frame. Now my keyboard gets special treatment. Everything should be the same. Thank you" (Marko, 22.10.2026)
+
+3. On the page all affiliate equipment (the two hubs and the Launchkey) sits in one frame, each item the same.
+
+**Status:** waiting for the end of the session (ask Marko first): the release with the newest APK, the Novation section, and the equipment in one frame.
 
 ## v19 — 22.10.2026: high notes clean (from Marko's octave test)
 

@@ -188,3 +188,13 @@
 3. Velocity: how hard a key is struck sets how loud its reed sounds, for every key.
 
 **Status:** in progress. The controller is a Novation Launchkey Mini MK4 25 on the Pixel's USB; the first build (test branch, build 53) opened it and the low C reached the box, but toggled. The second (held keys) tried by Marko 22.10.2026: "It works".
+
+## v12 — requested 22.10.2026: the whole keyboard at its own pitch, and ◀ ▶ for the octave
+
+> "Now back to the Shruti box. Please map the full keyboard to the Shruti. It means the octaves are matching, so it's not repeating even if I go over the what's on the screen. The app can produce the sound, the screen shows only one octave, but if the keyboard has more octave then keyboard is not lighting up on the screen of phone, but I can play it. And now talking about future updates because of this keyboarding instead of the list of all the keys at the bottom, just add one two buttons arrow left and right which are going to shift the display of the keys and also the playing on the screen octave up or down." (Marko, 22.10.2026)
+
+1. Every key of the MIDI keyboard sounds at its own pitch: no octave folding. Keys inside the octave on the screen light its valves; keys outside it sound without lighting anything.
+2. At the bottom, instead of the row of keys C … B: two arrows, ◀ and ▶, that move the octave on the screen (what is shown, and what the valves play) down or up.
+
+**Status:** asked.
+

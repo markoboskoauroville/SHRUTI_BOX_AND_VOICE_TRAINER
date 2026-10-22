@@ -138,11 +138,17 @@ private class Settings(prefs: SharedPreferences) {
     var rangeHigh by mutableIntStateOf(prefs.getInt("rangeHigh", 60).coerceIn(AutoRun.PIANO.first, AutoRun.PIANO.last))
     var bpm by mutableIntStateOf(prefs.getInt("bpm", 30).coerceIn(SeqRun.BPM.first, SeqRun.BPM.last))
     var xfade by mutableStateOf(prefs.getBoolean("xfade", true))
+    // v14: in landscape the box is alone, full screen; these panels may be added beside it, all off at first
+    var landNotes by mutableStateOf(prefs.getBoolean("landNotes", false))
+    var landTrainer by mutableStateOf(prefs.getBoolean("landTrainer", false))
+    var landPresets by mutableStateOf(prefs.getBoolean("landPresets", false))
+    var landOctave by mutableStateOf(prefs.getBoolean("landOctave", false))
     var xfadeS by mutableStateOf(prefs.getFloat("xfadeS", 1.5f).coerceIn(0.2f, 10f))
 
     fun save(prefs: SharedPreferences) = prefs.edit {
         putInt("within", within); putInt("rangeLow", rangeLow); putInt("rangeHigh", rangeHigh); putInt("bpm", bpm)
         putBoolean("xfade", xfade); putFloat("xfadeS", xfadeS)
+        putBoolean("landNotes", landNotes); putBoolean("landTrainer", landTrainer); putBoolean("landPresets", landPresets); putBoolean("landOctave", landOctave)
         putInt("palette", palette); putBoolean("landscape", landscape); putBoolean("showNotes", showNotes)
         putBoolean("showPresets", showPresets); putBoolean("showKeys", showKeys); putBoolean("showNames", showNames)
         putBoolean("showTrainer", showTrainer)
@@ -454,12 +460,13 @@ private fun ShrutiScreen(
         val cardName = chosen?.let { (t, i) -> tabs.getOrNull(t)?.presets?.getOrNull(i) }?.takeIf { openValves == it.valves.sorted() }?.name
         // the buttons beside RESET: the notes that sound; while ARP runs, every note of its card, not the one passing by
         val noteButtons = (openValves + (if (arpRun != null) chosenPreset?.valves.orEmpty() else emptyList())).distinct().sorted()
+        val land = androidx.compose.ui.platform.LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val notes: @Composable () -> Unit = {
-            if (settings.showNotes) NotesRow(openValves, noteButtons, levels, key, pal, anyOpen, cardName, onSave = { saveCustom() }, onLevel = { v ->
+            if (if (land) settings.landNotes else settings.showNotes) NotesRow(openValves, noteButtons, levels, key, pal, anyOpen, cardName, onSave = { saveCustom() }, onLevel = { v ->
                 val i = Loudness.next(levels[v]); levels[v] = i; mixer.setVolume(v, Loudness.gain(i)); onLevel(v, i)
             }) { closeAll() }
         }
-        val keys: @Composable () -> Unit = { if (settings.showKeys) OctaveRow(octave, key, pal) { moveOctave(it) } }
+        val keys: @Composable () -> Unit = { if (if (land) settings.landOctave else settings.showKeys) OctaveRow(octave, key, pal) { moveOctave(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
             PresetPanel(tabs, tab, chosen, openValves, key, pal, scaleRun != null, arp, arpRun != null, onArp = { toggleArp() }, onScale = { playScale() }, onTab = { tab = it; onTab(it) },
                 seq = SeqUi(seqMode, seqOrder.toList(), seqRun != null, seqRun?.let { seqOrder.getOrNull(it.index % maxOf(1, seqOrder.size)) }, settings.bpm,
@@ -475,7 +482,7 @@ private fun ShrutiScreen(
         } ?: if (autoDone) "scale complete · AUTO again to stop" else "starting"
         if (step < 0) Unit                                          // step only makes the status recompose
         val trainer: @Composable () -> Unit = {
-            if (settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted, auto, autoStatus, readout, settings.within,
+            if (if (land) settings.landTrainer else settings.showTrainer) Trainer(mixer, ear, target, key, pal, armed && micGranted, auto, autoStatus, readout, settings.within,
                 onWithin = { settings.within = it; onSettings() },
                 onAuto = {
                     // AUTO starts at once from the beginning of the scale; AUTO again stops it (v8)
@@ -497,28 +504,18 @@ private fun ShrutiScreen(
             }
         }
         BoxWithConstraints(Modifier.fillMaxSize()) {
-            if (maxWidth > maxHeight && !settings.showPresets) {
-                // landscape without presets: the box alone in the middle, as wide as the height leaves room for
-                val reserve = 54.dp + (if (settings.showNotes) 92.dp else 0.dp) + (if (settings.showKeys) 58.dp else 0.dp) +
-                    (if (settings.showTrainer) 70.dp else 0.dp)
-                val boxWidth = minOf(maxWidth, (maxHeight - reserve) * (BOX_W / BOX_H))
-                Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
-                    Spacer(Modifier.weight(1f))
-                    Column(Modifier.width(boxWidth)) { box(); notes(); trainer() }
-                    Spacer(Modifier.weight(1f))
-                    keys()
-                }
-            } else if (maxWidth > maxHeight) {
-                // landscape: the box, its notes and the keys on the left, the presets on the right
-                Row(Modifier.fillMaxSize()) {
-                    Column(Modifier.weight(1.15f).fillMaxHeight()) {
+            if (maxWidth > maxHeight) {
+                // v14 (Marko: "landscape mode is for full screen keyboard ... by default it's empty. It's just a keyboard in
+                // immersive view"): the box alone, as wide as the screen allows, on black; the panels he switched on in
+                // settings beside it. Nothing else is drawn, so a double tap on the black opens settings.
+                val side = settings.landPresets
+                Row(Modifier.fillMaxSize().pointerInput(Unit) { detectTapGestures(onDoubleTap = { inSettings = true }) }) {
+                    Column(Modifier.weight(if (side) 1.15f else 1f).fillMaxHeight(), verticalArrangement = Arrangement.Center) {
                         Spacer(Modifier.weight(1f)); box(); notes(); trainer(); Spacer(Modifier.weight(1f)); keys()
                     }
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f).fillMaxHeight()) {
-                        Row(Modifier.fillMaxWidth()) { Spacer(Modifier.weight(1f)); gear() }
-                        if (settings.showPresets) presets() else Spacer(Modifier.weight(1f))
+                    if (side) {
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f).fillMaxHeight()) { presets() }
                     }
                 }
             } else {
@@ -730,7 +727,25 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
         RangeStepper("TO", s.rangeHigh, pal) { s.rangeHigh = it.coerceIn(s.rangeLow, AutoRun.PIANO.last) }
         BasicText("LAYOUT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         Pills(listOf("PORTRAIT", "LANDSCAPE"), if (s.landscape) 1 else 0, pal) { s.landscape = it == 1 }
-        BasicText("SHOW", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        // v14: landscape is the box alone; these are what may join it there
+        BasicText("LANDSCAPE PANELS · the box alone unless switched on · double tap the black for settings", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        for ((label, on, set) in listOf<Triple<String, Boolean, (Boolean) -> Unit>>(
+            Triple("RESET AND NOTES", s.landNotes) { v: Boolean -> s.landNotes = v },
+            Triple("VOICE TRAINER", s.landTrainer) { v: Boolean -> s.landTrainer = v },
+            Triple("PRESETS", s.landPresets) { v: Boolean -> s.landPresets = v },
+            Triple("OCTAVE ◀ ▶", s.landOctave) { v: Boolean -> s.landOctave = v },
+        )) {
+            Row(
+                Modifier.fillMaxWidth().padding(vertical = 4.dp).border(1.dp, if (on) pal.light else pal.faint, RoundedCornerShape(22.dp))
+                    .clickable { set(!on) }.padding(horizontal = 18.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BasicText(label, style = MONO.copy(fontSize = 12.sp, letterSpacing = 1.sp, color = if (on) pal.light else pal.line))
+                Spacer(Modifier.weight(1f))
+                BasicText(if (on) "ON" else "OFF", style = MONO.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (on) pal.halo else pal.line))
+            }
+        }
+        BasicText("SHOW · PORTRAIT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         for ((label, on, set) in listOf<Triple<String, Boolean, (Boolean) -> Unit>>(
             Triple("NAMES ON THE VALVES", s.showNames) { v: Boolean -> s.showNames = v },
             Triple("RESET AND NOTES", s.showNotes) { v: Boolean -> s.showNotes = v },

@@ -200,5 +200,9 @@
 
 3. The settings button is Android's own settings gear (Material "settings").
 
+> "Or even better, let's make this: if I play a MIDI keyboard and I'm in a different octave, then the view shifts to that octave automatically." (Marko, 22.10.2026)
+
+4. The screen follows the keyboard: a key in another octave moves the box there (what is shown and what the valves play), and lights its valve. While other keys are held, a key outside sounds at its own pitch without moving the box, so held notes never jump.
+
 **Status:** asked.
 

@@ -373,5 +373,12 @@
 2. The app takes the Launchkey in DAW mode, as Ableton does: knobs, pads, arrows, Play and the other buttons control the app; the app lights the pads and writes the display.
 3. A letter to Novation asking for the octave message (drafted for Marko).
 
-**Status:** researching.
+> "for now from Novation Control, I only want to control the octave button. That must work. Pitch and modulations ribbons must work. There are eight knobs at the top. They should work with adjusting velocity of each button on the Shruti box on each valve. And we have sequencer also, so the pads are for sequencer. They will light up as the sequencer is running. And also I can trigger the sequencer each step of the sequencer with these sequencing buttons. And it can also light up. So it's off when I select preset, then it's become on. First preset first pad is on. Second preset second pad is on. And then I can trigger them by pressing the tabs itself" (Marko, 22.10.2026)
+
+4. The Launchkey's Octave − / + work: the box follows every octave.
+5. The pitch and modulation strips work (pitch bends the reeds, modulation adds vibrato).
+6. The 8 knobs set the loudness of the valves.
+7. The 16 pads are the sequencer's steps: a pad is dark until a preset gets that number in SEQ (first numbered preset lights pad 1, the second pad 2 …), it glows brighter while its step plays, and a press triggers that step.
+
+**Status:** researching, then v17.
 

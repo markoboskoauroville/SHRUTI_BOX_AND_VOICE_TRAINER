@@ -183,4 +183,8 @@
 
 2. A key is held, not toggled: pressed, its valve opens; released, it closes.
 
-**Status:** in progress. The controller is a Novation Launchkey Mini MK4 25 on the Pixel's USB; the first build (test branch, build 53) opened it and the low C reached the box, but toggled.
+> "I did press the C key two times. It works, it switches on and off the wall. Please also make it velocity sensitive. All my keys in my application Shruti Box." (Marko, 22.10.2026)
+
+3. Velocity: how hard a key is struck sets how loud its reed sounds, for every key.
+
+**Status:** in progress. The controller is a Novation Launchkey Mini MK4 25 on the Pixel's USB; the first build (test branch, build 53) opened it and the low C reached the box, but toggled. The second (held keys) tried by Marko 22.10.2026: "It works".

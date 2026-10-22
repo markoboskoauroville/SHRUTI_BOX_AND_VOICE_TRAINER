@@ -310,3 +310,12 @@
 
 **Status:** live 22.10.2026 on mantrashrutiandvoicetrainer.pages.dev (#donate): the bowl is a photoreal Nano Banana Pro render; a tap rings a synthesised singing bowl, drops a coin and opens https://revolut.me/mbosko0612. Kit and rules in MANTRA_MANIFEST (donation-bowl.md, payment-links.md).
 
+## The Facebook post — requested 22.10.2026
+
+> "please write a post for facebook to promote this page, both in english and in croatian" — then: "Facebook ad is very bad. You need to write in natural writing style. Please see my writing style and put one screenshot and that's it. Make it very normal, not overhyped, please. And both languages in one post, please. First English, then Croatian. Like human wrote it, please. My Facebook page is opened in my web browser Chrome under my profile, aurorawheel.community. And please make a post. Don't send it. I'm going to send it. Attach the screenshots and make it normal, please. Not overhyped." (Marko, 22.10.2026)
+
+1. One Facebook post on his profile (Chrome, auroville.community), English first, then Croatian, in his own plain writing style read from his posts: no hype, no emoji lists, no hashtags.
+2. One screenshot of the app attached. Composed and left unsent: Marko posts it.
+
+**Status:** asked.
+

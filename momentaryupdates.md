@@ -268,6 +268,10 @@
 
 > "On the website we need to promote the right USB hub, which is the metal one and has a good price on Amazon. This one, the plastic one, is unfortunately a scam." (Marko, 22.10.2026)
 
+> "please fix my web page. Download should be download latest version, not v13. We don't specify version because we are always updating. Put this in manifest so never repeats again, and it will open the GitHub page with the latest version" (Marko, 22.10.2026)
+
+12. The download button says "Download the latest version", no version anywhere on the page; it opens GitHub's latest release (needs the repository public: key scan and Marko's yes, going-public.md); until then the page serves the newest APK under a fixed name.
+
 11. The page promotes the metal StarTech 309B-USBC-HUB (amazon.de, €37.81 on 22.10.2026), not the plastic HB31CM4CPD3. — **Done 22.10.2026:** section "Play for hours: charge while you play" with the three-step hookup and the amazon.de link; the plastic hub is not named.
 
 10. Images are made the Elevate Media way: reference sheets (characters, props, spaces, pencil sketches), real web photos of the devices as references, and the references written down.

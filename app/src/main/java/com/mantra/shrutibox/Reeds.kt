@@ -46,9 +46,12 @@ object Shruti {
     /** The lower row of the reed plate holds the seven notes of the scale and the upper Sa; the upper row the five between. */
     fun isUpperRow(valve: Int): Boolean = valve in setOf(1, 3, 6, 8, 10)
 
-    /** How far ◀ ▶ move the box (v12): Sa from C1 to B5. */
-    const val LOWEST_OCTAVE = -2
-    const val HIGHEST_OCTAVE = 2
+    /**
+     * How far the box moves (v16): every note a MIDI keyboard can send, 0 to 127. The Launchkey Mini MK4's Octave − / +
+     * reach −4 (keys on notes 0–24) to +5 (108–127); in its naming, where middle C (60) is C3, Sa goes from C-2 to C8.
+     */
+    const val LOWEST_OCTAVE = -4
+    const val HIGHEST_OCTAVE = 6
 
     /** The MIDI note of the box's Sa: C3 (48) in C, moved by the key and by whole octaves. */
     fun saNote(key: Int, octave: Int): Int = 48 + key.coerceIn(0, 11) + 12 * octave.coerceIn(LOWEST_OCTAVE, HIGHEST_OCTAVE)

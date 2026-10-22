@@ -268,6 +268,8 @@ private fun ShrutiScreen(
     var key by remember { mutableIntStateOf(mixer.key) }
     // v12: whole octaves the box is moved, by ◀ ▶ or by the keyboard playing in another octave
     var octave by remember { mutableIntStateOf(mixer.octave) }
+    // v16: octaves ◀ ▶ add to what the keyboard plays, as its own Oct − / + would (its switch cannot be set over MIDI)
+    var kbShift by remember { mutableIntStateOf(0) }
     fun moveOctave(o: Int) { val c = o.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE); if (c != octave) { octave = c; mixer.octave = c; onOctave(c) } }
     // v13: CUSTOM, his own presets, the tab after the page's; editing is the card being named, seq its sequencer
     val custom = remember { mutableStateListOf(*startCustom.toTypedArray()) }
@@ -398,8 +400,11 @@ private fun ShrutiScreen(
     // How hard a key is struck sets its loudness, on top of the note's own level ("make it velocity sensitive"). A pad in
     // Drum mode (channel 10, notes 36–51, the Launchkey's default) chooses that card of the open tab when it goes down.
     val sounding = remember { HashMap<Int, Int>() }                  // a key that is down → its valve, or -1 for a free reed
-    val onMidi by rememberUpdatedState<(Int, Int, Int) -> Unit> { ch, note, vel ->
-        val pad = note - 36
+    val onMidi by rememberUpdatedState<(Int, Int, Int) -> Unit> { ch, raw, vel ->
+        val pad = raw - 36
+        // the keys play as many octaves higher or lower as ◀ ▶ moved them (v16); the pads stay as they are
+        val note = if (ch == 9) raw else raw + 12 * kbShift
+        if (note !in 0..127) return@rememberUpdatedState
         if (ch == 9 && pad in 0..15) { if (vel > 0 && pad < tabs[tab].presets.size) choose(tab, pad) }
         else if (vel > 0) {
             if (Shruti.valveInWindow(key, octave, note) == null && sounding.isEmpty() && !auto) Shruti.octaveFor(key, note)?.let { moveOctave(it) }
@@ -419,6 +424,19 @@ private fun ShrutiScreen(
         }
     }
     DisposableEffect(midi) { midi.onNote = { ch, note, vel -> onMidi(ch, note, vel) }; onDispose { midi.onNote = null } }
+
+    // ◀ ▶ (v16): the box moves, the keys follow it by the same octaves, and the Launchkey's display says it the way its
+    // own Octave buttons do: "Octave" over "+1 (C3 - C5)", its 25 keys from the lowest to the highest ("---" past 127)
+    fun arrowOctave(o: Int) {
+        val before = octave
+        moveOctave(o)
+        val moved = octave - before
+        if (moved == 0) return
+        kbShift += moved
+        val low = 48 + 12 * kbShift; val high = low + 24
+        fun nm(n: Int) = if (n in 0..127) noteName(n) else "---"
+        midi.launchkeyText("Octave", String.format(java.util.Locale.ROOT, "%+d (%s - %s)", kbShift, nm(low), nm(high)))
+    }
 
     // v13 CUSTOM: the save icon keeps what sounds as a new card and asks its name at once
     fun saveCustom() {
@@ -466,7 +484,7 @@ private fun ShrutiScreen(
                 val i = Loudness.next(levels[v]); levels[v] = i; mixer.setVolume(v, Loudness.gain(i)); onLevel(v, i)
             }) { closeAll() }
         }
-        val keys: @Composable () -> Unit = { if (if (land) settings.landOctave else settings.showKeys) OctaveRow(octave, key, pal) { moveOctave(it) } }
+        val keys: @Composable () -> Unit = { if (if (land) settings.landOctave else settings.showKeys) OctaveRow(octave, key, pal) { arrowOctave(it) } }
         val presets: @Composable ColumnScope.() -> Unit = {
             PresetPanel(tabs, tab, chosen, openValves, key, pal, scaleRun != null, arp, arpRun != null, onArp = { toggleArp() }, onScale = { playScale() }, onTab = { tab = it; onTab(it) },
                 seq = SeqUi(seqMode, seqOrder.toList(), seqRun != null, seqRun?.let { seqOrder.getOrNull(it.index % maxOf(1, seqOrder.size)) }, settings.bpm,
@@ -580,7 +598,7 @@ private fun OctaveRow(octave: Int, key: Int, pal: Palette, onOctave: (Int) -> Un
     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Arrow("◀", low, octave - 1)
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            BasicText("Sa = ${Shruti.KEYS[key]}${3 + octave}", style = MONO.copy(fontSize = 14.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = pal.light))
+            BasicText("Sa = ${noteName(Shruti.saNote(key, octave))}", style = MONO.copy(fontSize = 14.sp, letterSpacing = 1.sp, fontWeight = FontWeight.Bold, color = pal.light))
         }
         Arrow("▶", high, octave + 1)
     }
@@ -722,7 +740,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
         // v13: the voice trainer's difficulty and range (a long press on AUTO sets the difficulty too)
         BasicText("VOICE TRAINER · DIFFICULTY", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         Pills(AutoRun.DIFFICULTIES.map { "±$it %" }, AutoRun.DIFFICULTIES.indexOf(s.within), pal, height = 40, fontSize = 11) { s.within = AutoRun.DIFFICULTIES[it] }
-        BasicText("VOICE TRAINER · RANGE (88 KEYS, A0 TO C8)", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        BasicText("VOICE TRAINER · RANGE (88 KEYS, A-1 TO C7)", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         RangeStepper("FROM", s.rangeLow, pal) { s.rangeLow = it.coerceIn(AutoRun.PIANO.first, s.rangeHigh) }
         RangeStepper("TO", s.rangeHigh, pal) { s.rangeHigh = it.coerceIn(s.rangeLow, AutoRun.PIANO.last) }
         BasicText("LAYOUT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
@@ -903,7 +921,9 @@ private fun Trainer(
 }
 
 /** A MIDI note's name with its octave, as on a piano: 48 is C3, 21 is A0, 108 is C8. */
-private fun noteName(note: Int): String = Shruti.KEYS[Math.floorMod(note, 12)] + (Math.floorDiv(note, 12) - 1)
+// v16: in the Launchkey's own naming, middle C (note 60) is C3 (Novation; scientific pitch calls it C4), so the box at
+// rest is C2 … C2' and the keyboard's display and the app say the same name for the same key
+private fun noteName(note: Int): String = Shruti.KEYS[Math.floorMod(note, 12)] + (Math.floorDiv(note, 12) - 2)
 
 /** What the sequencer bar shows and does (v13). */
 private class SeqUi(

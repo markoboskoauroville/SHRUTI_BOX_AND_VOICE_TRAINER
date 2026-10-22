@@ -380,7 +380,7 @@
 6. The 8 knobs set the loudness of the valves.
 7. The 16 pads are the sequencer's steps: a pad is dark until a preset gets that number in SEQ (first numbered preset lights pad 1, the second pad 2 …), it glows brighter while its step plays, and a press triggers that step.
 
-**Status:** researching, then v17.
+**Status:** v17–v20 tested on the Pixel 7 with Marko's hand, 22.10.2026: DAW mode switched on by the app (the Launchkey answers 9F 0C 7F; again after a restart); knob 1 = CC 21 on the DAW port, Sa's loudness, shown on the display; modulation strip = CC 1 (port 0), vibrato; pitch strip = bends on port 0, shown on the display (v20); pads = notes 96–103 / 112–119 on the DAW port, blue while numbered, white while sounding (seen through the camera, the light walking pad 1 → 2 at 30 BPM), a press triggers its step; Oct + followed (note 108 → Sa = C7, names as on the Launchkey). Not yet tried: knobs 2–8 and Shift + knobs. SEQ numbering is not kept across restarts yet.
 
 ## The Novation note on the page — requested 22.10.2026
 
@@ -400,7 +400,7 @@
 
 1. A reed's tone carries only the harmonics that fit under the digital limit at its pitch: at C7 the 28 harmonics reached 117 kHz and folded back as harsh tones (aliasing). Nine tones (28 … 1 harmonics), the richest clean one chosen per reed each block.
 
-**Status:** built for testing.
+**Status:** tested 22.10.2026 through the Pixel's own microphone (scrcpy --audio-source=mic): C7 = 4186 Hz with its harmonics at exactly 2× and 3×, nothing folded back.
 
 ## v20 — 22.10.2026: the pitch strip on the display
 
@@ -408,5 +408,5 @@
 
 1. The pitch strip did reach the app (bends 772 … 1131, back to 8192), but the Launchkey's own display does not show it; the app now writes "Pitch" over its value in semitones.
 
-**Status:** built for testing.
+**Status:** tested 22.10.2026: "Pitch is registering in the display" (Marko).
 

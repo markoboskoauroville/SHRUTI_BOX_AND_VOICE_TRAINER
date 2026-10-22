@@ -4,6 +4,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- v11: a MIDI controller plays the box when the phone has MIDI; without it the app is the same -->
+    <uses-feature android:name="android.software.midi" android:required="false" />
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"

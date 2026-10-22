@@ -41,6 +41,16 @@ object Shruti {
     /** The lower row of the reed plate holds the seven notes of the scale and the upper Sa; the upper row the five between. */
     fun isUpperRow(valve: Int): Boolean = valve in setOf(1, 3, 6, 8, 10)
 
+    /**
+     * The valve a MIDI key opens (v11): every octave of the keyboard folds onto Sa … Ni, and a Sa an octave or more
+     * above the box's own Sa (MIDI 48 + key, C3 in C) is the upper Sa. A Launchkey Mini 25 in C: C3 is Sa, C4 and C5 Sa'.
+     */
+    fun valveForNote(key: Int, note: Int): Int {
+        val above = note - (48 + key.coerceIn(0, 11))
+        val step = Math.floorMod(above, 12)
+        return if (step == 0 && above >= 12) 12 else step
+    }
+
     /** The Western name of valve [valve] in key [key]: Sa in D is D. */
     fun western(key: Int, valve: Int): String = KEYS[(key.coerceIn(0, 11) + valve) % 12]
 

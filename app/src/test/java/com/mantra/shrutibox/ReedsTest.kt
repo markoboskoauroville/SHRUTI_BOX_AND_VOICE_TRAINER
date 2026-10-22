@@ -27,6 +27,14 @@ class ReedsTest {
     @Test fun fiveUpperValves() = assertEquals(5, (0 until 13).count { Shruti.isUpperRow(it) })
     @Test fun saAndPaOnTheLowerRow() { assertFalse(Shruti.isUpperRow(0)); assertFalse(Shruti.isUpperRow(7)); assertFalse(Shruti.isUpperRow(12)) }
 
+    // v11: the MIDI keyboard's keys fold onto the thirteen valves
+    @Test fun c3IsSaInC() = assertEquals(0, Shruti.valveForNote(0, 48))
+    @Test fun c4AndC5AreUpperSa() { assertEquals(12, Shruti.valveForNote(0, 60)); assertEquals(12, Shruti.valveForNote(0, 72)) }
+    @Test fun g3AndG4ArePa() { assertEquals(7, Shruti.valveForNote(0, 55)); assertEquals(7, Shruti.valveForNote(0, 67)) }
+    @Test fun aLowCIsSa() = assertEquals(0, Shruti.valveForNote(0, 36))
+    @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveForNote(2, 50)); assertEquals(10, Shruti.valveForNote(2, 48)); assertEquals(12, Shruti.valveForNote(2, 62)) }
+    @Test fun everyNoteIsAValve() = assertTrue((0..127).all { Shruti.valveForNote(5, it) in 0 until Shruti.COUNT })
+
     @Test fun westernFollowsTheKey() { assertEquals("D", Shruti.western(2, 0)); assertEquals("A", Shruti.western(2, 7)); assertEquals("C", Shruti.western(0, 12)) }
     @Test fun detectsNothingWhenClosed() = assertEquals("", Shruti.detect(0, emptyList()))
     @Test fun detectsTheFifth() = assertEquals("Perfect fifth", Shruti.detect(0, listOf(7, 0)))

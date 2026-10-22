@@ -141,6 +141,7 @@ private class Settings(prefs: SharedPreferences) {
 class MainActivity : ComponentActivity() {
     private val engine = Engine()
     private val ear = Ear()
+    private lateinit var midi: Midi
     private val micGranted = mutableStateOf(false)
     private val askMic = registerForActivityResult(ActivityResultContracts.RequestPermission()) { micGranted.value = it }
 
@@ -158,12 +159,14 @@ class MainActivity : ComponentActivity() {
         val levels = IntArray(Shruti.COUNT) { prefs.getInt("level$it", 0).let { l -> if (l in Loudness.LABELS.indices) l else 0 } }
         levels.forEachIndexed { v, i -> engine.mixer.setVolume(v, Loudness.gain(i)) }
         val settings = Settings(prefs)
+        midi = Midi(this)
         micGranted.value = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         fixLayout(settings.landscape)
         setContent {
             ShrutiScreen(
                 mixer = engine.mixer,
                 ear = ear,
+                midi = midi,
                 micGranted = micGranted.value,
                 askMic = { askMic.launch(Manifest.permission.RECORD_AUDIO) },
                 settings = settings,
@@ -189,8 +192,8 @@ class MainActivity : ComponentActivity() {
         requestedOrientation = if (landscape) ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE else ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
     }
 
-    override fun onStart() { super.onStart(); engine.start() }
-    override fun onStop() { ear.listen(false); engine.stop(); super.onStop() }
+    override fun onStart() { super.onStart(); engine.start(); midi.start() }
+    override fun onStop() { ear.listen(false); midi.stop(); engine.stop(); super.onStop() }
 }
 
 private fun openLatest(c: Context) {
@@ -215,7 +218,7 @@ private val MONO = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 13.sp
 
 @Composable
 private fun ShrutiScreen(
-    mixer: Mixer, ear: Ear, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
+    mixer: Mixer, ear: Ear, midi: Midi, micGranted: Boolean, askMic: () -> Unit, settings: Settings, startTab: Int,
     startLevels: IntArray, onLevel: (Int, Int) -> Unit, onKey: (Int) -> Unit, onTab: (Int) -> Unit, onSettings: () -> Unit,
     onAnyOpen: (Boolean) -> Unit, onVersion: () -> Unit
 ) {
@@ -318,11 +321,20 @@ private fun ShrutiScreen(
     }
     val openValves = (0 until Shruti.COUNT).filter { open[it] }
 
+    // the MIDI controller (v11): a key opens or closes its valve as a tap does, every octave folded onto the box; a pad
+    // in Drum mode (channel 10, notes 36–51, the Launchkey's default) chooses that card of the open tab
+    val onMidi by rememberUpdatedState<(Int, Int) -> Unit> { ch, note ->
+        val pad = note - 36
+        if (ch == 9 && pad in 0..15) { if (pad < Presets.TABS[tab].presets.size) choose(tab, pad) }
+        else toggle(Shruti.valveForNote(key, note))
+    }
+    DisposableEffect(midi) { midi.onNote = { ch, note, _ -> onMidi(ch, note) }; onDispose { midi.onNote = null } }
+
     BackHandler(enabled = inSettings) { inSettings = false; onSettings() }
 
     Box(Modifier.fillMaxSize().background(BLACK).windowInsetsPadding(WindowInsets.displayCutout).padding(horizontal = 10.dp, vertical = 10.dp)) {
         if (inSettings) {
-            SettingsScreen(settings, pal, onVersion) { inSettings = false; onSettings() }
+            SettingsScreen(settings, pal, midi.connected.value, onVersion) { inSettings = false; onSettings() }
             return@Box
         }
         val box: @Composable () -> Unit = { ValveBox(mixer, open, key, pal, settings.showNames, marks, levels) { toggle(it) } }
@@ -541,7 +553,7 @@ private fun ColumnScope.PresetPanel(
 
 /** Settings (v5): the colour scheme, the layout, which parts show, and the version. Back or DONE returns. */
 @Composable
-private fun SettingsScreen(s: Settings, pal: Palette, onVersion: () -> Unit, onDone: () -> Unit) {
+private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, onVersion: () -> Unit, onDone: () -> Unit) {
     val head = MONO.copy(fontSize = 11.sp, letterSpacing = 2.sp, color = pal.light.copy(alpha = 0.5f))
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 6.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -571,6 +583,17 @@ private fun SettingsScreen(s: Settings, pal: Palette, onVersion: () -> Unit, onD
                 BasicText(if (on) "ON" else "OFF", style = MONO.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, color = if (on) pal.halo else pal.line))
             }
         }
+        // v11: which MIDI controller plays the box, and how
+        BasicText("MIDI", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        BasicText(
+            if (midiNames.isEmpty()) "no controller · plug one into USB" else midiNames.joinToString("\n"),
+            style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = if (midiNames.isEmpty()) pal.line else pal.light)
+        )
+        BasicText(
+            "its keys open and close the valves, every octave folded onto Sa … Sa'; its pads in Drum mode choose the cards of the open tab",
+            style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)),
+            modifier = Modifier.padding(top = 4.dp)
+        )
         BasicText("VERSION", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         BasicText(
             "v${BuildConfig.VERSION_NAME}   latest release →",

@@ -234,3 +234,15 @@
 
 **Status:** asked.
 
+## The release and its page — requested 22.10.2026
+
+> "After you've done everything, now this application is ready to be released. Create a page in the Cloudflare domain name is mantrashrutiadvoicetrainer.pages.dev and make it as a product advertisement campaign to sell this one for free now. But you need to quickly give all the features in a nutshell, then go into the details, and in the end history of Shruti Box and how they come from France to India and how they are used for recited mantras. Then you can give few examples of mantras and a few YouTube videos where people are playing the mantras with Shruti Box." (Marko, 22.10.2026)
+
+> "Take the screenshot of the app to be published on the website." (Marko, 22.10.2026)
+
+1. Release the app once v13 is done.
+2. A product page on Cloudflare Pages, free download: the features in a nutshell, then the details, then the history of the shruti box (from France to India) and its use with recited mantras, a few mantras, and a few YouTube videos of mantras played with a shruti box.
+3. Screenshots of the app on the page.
+
+**Status:** asked.
+

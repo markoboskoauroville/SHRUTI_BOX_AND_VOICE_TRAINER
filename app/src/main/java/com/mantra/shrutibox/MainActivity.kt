@@ -182,7 +182,11 @@ class MainActivity : ComponentActivity() {
         midi = Midi(this)
         // v22: the piano's 60 recordings are decoded once, in the background; the reeds play meanwhile
         engine.mixer.instrument = settings.instrument
-        Thread { engine.mixer.piano.setSamples(PianoLoader.load(assets)) }.start()
+        Thread {
+            val t0 = android.os.SystemClock.uptimeMillis()
+            PianoLoader.load(assets) { engine.mixer.piano.setSamples(it) }
+            android.util.Log.i("ShrutiPiano", "all decoded in ${android.os.SystemClock.uptimeMillis() - t0} ms")
+        }.start()
         micGranted.value = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         fixLayout(settings.landscape)
         setContent {

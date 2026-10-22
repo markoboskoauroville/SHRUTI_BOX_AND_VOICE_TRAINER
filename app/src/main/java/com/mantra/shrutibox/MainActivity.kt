@@ -324,14 +324,18 @@ private fun ShrutiScreen(
     // the MIDI controller (v11): a key held opens its valve, released closes it (Marko: "when I press it's open, and
     // when I stop pressing it's closed"), every octave folded onto the box; C4 and C5 both hold Sa', so a valve closes
     // when the last of its keys is up. A pad in Drum mode (channel 10, notes 36–51, the Launchkey's default) chooses
-    // that card of the open tab when it goes down.
+    // that card of the open tab when it goes down. How hard a key is struck sets how loud its reed sounds, on top of the
+    // note's own level (Marko: "make it velocity sensitive"); a valve opened on the screen sounds at its level.
     val held = remember { IntArray(Shruti.COUNT) }
-    val onMidi by rememberUpdatedState<(Int, Int, Boolean) -> Unit> { ch, note, down ->
+    val onMidi by rememberUpdatedState<(Int, Int, Int) -> Unit> { ch, note, vel ->
+        val down = vel > 0
         val pad = note - 36
         if (ch == 9 && pad in 0..15) { if (down && pad < Presets.TABS[tab].presets.size) choose(tab, pad) }
         else {
             val v = Shruti.valveForNote(key, note)
             held[v] = maxOf(0, held[v] + if (down) 1 else -1)
+            val full = Loudness.gain(levels[v])
+            if (down) mixer.setVolume(v, full * Loudness.velocity(vel)) else if (held[v] == 0) mixer.setVolume(v, full)
             when {
                 down && auto -> startAuto(v)                    // while AUTO runs a key is the walk's new beginning, as a tap
                 down && !open[v] -> toggle(v)
@@ -339,7 +343,7 @@ private fun ShrutiScreen(
             }
         }
     }
-    DisposableEffect(midi) { midi.onNote = { ch, note, down -> onMidi(ch, note, down) }; onDispose { midi.onNote = null } }
+    DisposableEffect(midi) { midi.onNote = { ch, note, vel -> onMidi(ch, note, vel) }; onDispose { midi.onNote = null } }
 
     BackHandler(enabled = inSettings) { inSettings = false; onSettings() }
 
@@ -601,7 +605,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, o
             style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = if (midiNames.isEmpty()) pal.line else pal.light)
         )
         BasicText(
-            "a key held opens its valve and released closes it, every octave folded onto Sa … Sa'; its pads in Drum mode choose the cards of the open tab",
+            "a key held opens its valve and released closes it, as loud as it is struck, every octave folded onto Sa … Sa'; its pads in Drum mode choose the cards of the open tab",
             style = MONO.copy(fontSize = 11.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f)),
             modifier = Modifier.padding(top = 4.dp)
         )

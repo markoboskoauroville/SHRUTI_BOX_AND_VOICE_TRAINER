@@ -26,6 +26,11 @@ object Loudness {
     fun gain(i: Int): Double = 10.0.pow(DB[i.coerceIn(0, DB.size - 1)] / 20.0)
     /** The level after [i]: full → half → line → full. */
     fun next(i: Int): Int = (i + 1) % DB.size
+    /**
+     * How hard a MIDI key was struck, as an amplitude (v11, Marko: "make it velocity sensitive"): velocity 127 is 0 dB,
+     * the softest touch −24 dB, even in dB between them, so the touch is heard as evenly as the levels are.
+     */
+    fun velocity(vel: Int): Double = 10.0.pow(-24.0 * (1.0 - vel.coerceIn(1, 127) / 127.0) / 20.0)
 }
 
 object Shruti {

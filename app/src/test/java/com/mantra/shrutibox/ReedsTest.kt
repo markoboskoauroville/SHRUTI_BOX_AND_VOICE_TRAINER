@@ -33,6 +33,9 @@ class ReedsTest {
     @Test fun g3AndG4ArePa() { assertEquals(7, Shruti.valveForNote(0, 55)); assertEquals(7, Shruti.valveForNote(0, 67)) }
     @Test fun aLowCIsSa() = assertEquals(0, Shruti.valveForNote(0, 36))
     @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveForNote(2, 50)); assertEquals(10, Shruti.valveForNote(2, 48)); assertEquals(12, Shruti.valveForNote(2, 62)) }
+    @Test fun fullVelocityIsFull() = assertEquals(1.0, Loudness.velocity(127), 1e-9)
+    @Test fun softestVelocityIsMinus24dB() = assertEquals(Loudness.gain(2), Loudness.velocity(1) , 0.01)
+    @Test fun velocityRises() = assertTrue((2..127).all { Loudness.velocity(it) > Loudness.velocity(it - 1) })
     @Test fun everyNoteIsAValve() = assertTrue((0..127).all { Shruti.valveForNote(5, it) in 0 until Shruti.COUNT })
 
     @Test fun westernFollowsTheKey() { assertEquals("D", Shruti.western(2, 0)); assertEquals("A", Shruti.western(2, 7)); assertEquals("C", Shruti.western(0, 12)) }

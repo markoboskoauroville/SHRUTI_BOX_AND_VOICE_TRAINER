@@ -7,6 +7,7 @@ import android.media.midi.MidiDeviceInfo
 import android.media.midi.MidiManager
 import android.media.midi.MidiOutputPort
 import android.media.midi.MidiReceiver
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -37,7 +38,15 @@ class Midi(context: Context) {
 
     fun start() {
         val m = manager ?: return
-        @Suppress("DEPRECATION")                                    // getDevicesForTransport is API 33; this app runs from 26
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            m.getDevicesForTransport(MidiManager.TRANSPORT_MIDI_BYTE_STREAM).forEach { attach(it) }
+            m.registerDeviceCallback(MidiManager.TRANSPORT_MIDI_BYTE_STREAM, { main.post(it) }, callback)
+        } else startBefore33(m)
+    }
+
+    // the calls of Android 8 to 12, deprecated from 13 (this app runs from 26)
+    @Suppress("DEPRECATION")
+    private fun startBefore33(m: MidiManager) {
         m.devices.forEach { attach(it) }
         m.registerDeviceCallback(callback, main)
     }

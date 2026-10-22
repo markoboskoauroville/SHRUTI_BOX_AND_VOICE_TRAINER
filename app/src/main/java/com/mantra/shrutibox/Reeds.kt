@@ -47,11 +47,13 @@ object Shruti {
     fun isUpperRow(valve: Int): Boolean = valve in setOf(1, 3, 6, 8, 10)
 
     /**
-     * How far the box moves (v16): every note a MIDI keyboard can send, 0 to 127. The Launchkey Mini MK4's Octave − / +
-     * reach −4 (keys on notes 0–24) to +5 (108–127); in its naming, where middle C (60) is C3, Sa goes from C-2 to C8.
+     * How far the box moves (v21, Marko: "we have 88 keys matching the piano"): the piano runs from A0 (27.5 Hz, MIDI 21)
+     * to C8 (4186 Hz, MIDI 108), so Sa goes from C1 (MIDI 24) to C7 (MIDI 96), whose Sa' is C8.
      */
-    const val LOWEST_OCTAVE = -4
-    const val HIGHEST_OCTAVE = 6
+    const val LOWEST_OCTAVE = -2
+    const val HIGHEST_OCTAVE = 4
+    /** The piano's keys, MIDI 21 (A0) to 108 (C8): a key outside them is not played. */
+    val PIANO_KEYS = 21..108
 
     /** The MIDI note of the box's Sa: C3 (48) in C, moved by the key and by whole octaves. */
     fun saNote(key: Int, octave: Int): Int = 48 + key.coerceIn(0, 11) + 12 * octave.coerceIn(LOWEST_OCTAVE, HIGHEST_OCTAVE)

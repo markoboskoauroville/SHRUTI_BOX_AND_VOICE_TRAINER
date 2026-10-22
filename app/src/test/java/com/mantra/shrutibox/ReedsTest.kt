@@ -34,7 +34,8 @@ class ReedsTest {
     @Test fun belowSaHasNoValve() = assertEquals(null, Shruti.valveInWindow(0, 0, 47))
     @Test fun octaveUpMovesTheWindow() { assertEquals(0, Shruti.valveInWindow(0, 1, 60)); assertEquals(12, Shruti.valveInWindow(0, 1, 72)); assertEquals(null, Shruti.valveInWindow(0, 1, 48)) }
     @Test fun keyDMovesSaToD3() { assertEquals(0, Shruti.valveInWindow(2, 0, 50)); assertEquals(null, Shruti.valveInWindow(2, 0, 48)) }
-    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 60)); assertEquals(2, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(6, Shruti.octaveFor(0, 127)); assertEquals(-4, Shruti.octaveFor(0, 0)); assertEquals(null, Shruti.octaveFor(0, -1)) }
+    @Test fun theOctaveOfAKey() { assertEquals(0, Shruti.octaveFor(0, 55)); assertEquals(1, Shruti.octaveFor(0, 60)); assertEquals(2, Shruti.octaveFor(0, 72)); assertEquals(-1, Shruti.octaveFor(0, 47)); assertEquals(4, Shruti.octaveFor(0, 96)); assertEquals(-2, Shruti.octaveFor(0, 24)); assertEquals(null, Shruti.octaveFor(0, 108)); assertEquals(null, Shruti.octaveFor(0, 23)) }
+    @Test fun thePianoIs88Keys() { assertEquals(88, Shruti.PIANO_KEYS.count()); assertEquals(27.5, Shruti.noteFreq(21), 0.01); assertEquals(4186.0, Shruti.noteFreq(108), 0.1) }
     @Test fun noteFreqIsTheValvesPitch() { assertEquals(Shruti.freq(0, 0), Shruti.noteFreq(48), 1e-9); assertEquals(Shruti.freq(0, 12) * 2, Shruti.noteFreq(72), 1e-9) }
     // v13: the trainer's walk through its range, in MIDI notes
     @Test fun walkC3toC4IsTheMajorScale() = assertEquals(listOf(48, 50, 52, 53, 55, 57, 59, 60), AutoRun.walk(48, 0, AutoRun.MAJOR, 60))

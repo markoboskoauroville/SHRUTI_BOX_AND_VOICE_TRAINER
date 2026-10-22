@@ -54,7 +54,7 @@ class AutoRun(val notes: List<Int>, val playS: Double = 3.0, val holdS: Double =
         fun from(start: Int, scale: List<Int>): List<Int> =
             (listOf(start) + scale.filter { it > start } + 12).filter { it in 0..12 && it >= start }.distinct().sorted()
 
-        /** The 88 keys of a piano, MIDI 21 to 108 (A-1 to C7 in the Launchkey's naming, A0 to C8 in scientific), as MIDI notes: the trainer's range is chosen inside them (v13). */
+        /** The 88 keys of a piano, A0 (MIDI 21, 27.5 Hz) to C8 (MIDI 108, 4186 Hz), as MIDI notes: the trainer's range is chosen inside them (v13). */
         val PIANO = 21..108
         /** How close the voice must stay, ± percent of a semitone (v13, Marko: "The hardest part is 20% ... then 40%, then 60%"). */
         val DIFFICULTIES = listOf(20, 40, 60)

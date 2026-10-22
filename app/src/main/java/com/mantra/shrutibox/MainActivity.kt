@@ -431,7 +431,8 @@ private fun ShrutiScreen(
         val pad = raw - 36
         // the keys play as many octaves higher or lower as ◀ ▶ moved them (v16); the pads stay as they are
         val note = if (ch == 9) raw else raw + 12 * kbShift
-        if (note !in 0..127) return@rememberUpdatedState
+        // v21: only the piano's 88 keys play
+        if (ch != 9 && note !in Shruti.PIANO_KEYS) return@rememberUpdatedState
         if (ch == 9 && pad in 0..15) { if (vel > 0 && pad < tabs[tab].presets.size) choose(tab, pad) }
         else if (vel > 0) {
             if (Shruti.valveInWindow(key, octave, note) == null && sounding.isEmpty() && !auto) Shruti.octaveFor(key, note)?.let { moveOctave(it) }
@@ -806,7 +807,7 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
         // v13: the voice trainer's difficulty and range (a long press on AUTO sets the difficulty too)
         BasicText("VOICE TRAINER · DIFFICULTY", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         Pills(AutoRun.DIFFICULTIES.map { "±$it %" }, AutoRun.DIFFICULTIES.indexOf(s.within), pal, height = 40, fontSize = 11) { s.within = AutoRun.DIFFICULTIES[it] }
-        BasicText("VOICE TRAINER · RANGE (88 KEYS, A-1 TO C7)", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
+        BasicText("VOICE TRAINER · RANGE (88 KEYS, A0 TO C8)", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
         RangeStepper("FROM", s.rangeLow, pal) { s.rangeLow = it.coerceIn(AutoRun.PIANO.first, s.rangeHigh) }
         RangeStepper("TO", s.rangeHigh, pal) { s.rangeHigh = it.coerceIn(s.rangeLow, AutoRun.PIANO.last) }
         BasicText("LAYOUT", style = head, modifier = Modifier.padding(top = 22.dp, bottom = 8.dp))
@@ -987,9 +988,9 @@ private fun Trainer(
 }
 
 /** A MIDI note's name with its octave, as on a piano: 48 is C3, 21 is A0, 108 is C8. */
-// v16: in the Launchkey's own naming, middle C (note 60) is C3 (Novation; scientific pitch calls it C4), so the box at
-// rest is C2 … C2' and the keyboard's display and the app say the same name for the same key
-private fun noteName(note: Int): String = Shruti.KEYS[Math.floorMod(note, 12)] + (Math.floorDiv(note, 12) - 2)
+// v21 (Marko: "remove minus ... 88 keys matching the piano"): the piano's own names, A0 … C8, middle C (60) = C4, so no
+// name inside the piano ever carries a minus. (The Launchkey's own pop-ups use Novation's names, one octave lower.)
+private fun noteName(note: Int): String = Shruti.KEYS[Math.floorMod(note, 12)] + (Math.floorDiv(note, 12) - 1)
 
 /** What the sequencer bar shows and does (v13). */
 private class SeqUi(

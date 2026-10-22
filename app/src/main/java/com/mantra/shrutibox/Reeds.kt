@@ -101,16 +101,36 @@ object Shruti {
 /** One cycle of a free reed: rich, bright, the odd harmonics a little stronger, normalised to a peak of 1. */
 object Wave {
     const val SIZE = 2048
-    val table: FloatArray by lazy { build() }
-    private fun build(): FloatArray {
-        val t = DoubleArray(SIZE)
-        for (n in 1..28) {
-            val a = (1.0 / n.toDouble().pow(0.85)) * (if (n % 2 == 1) 1.0 else 0.62) * exp(-n / 16.0)
-            for (i in 0 until SIZE) t[i] += a * sin(2 * PI * n * i / SIZE)
+    /**
+     * v18 (Marko: "the sound is very strange" on a high C): one reed tone per number of harmonics, so a high note never
+     * carries overtones past what digital audio can hold. At C7 (4.2 kHz) the 28 harmonics reached 117 kHz and folded
+     * back as harsh unrelated tones (aliasing). Every table is scaled by the full tone's peak, so they match in level.
+     */
+    val HARMONICS = intArrayOf(28, 20, 14, 10, 7, 5, 3, 2, 1)
+    private val raw: List<DoubleArray> by lazy {
+        HARMONICS.map { h ->
+            val t = DoubleArray(SIZE)
+            for (n in 1..h) {
+                val a = (1.0 / n.toDouble().pow(0.85)) * (if (n % 2 == 1) 1.0 else 0.62) * exp(-n / 16.0)
+                for (i in 0 until SIZE) t[i] += a * sin(2 * PI * n * i / SIZE)
+            }
+            t
         }
-        val peak = t.maxOf { abs(it) }
-        return FloatArray(SIZE) { (t[it] / peak).toFloat() }
     }
+    private val tables: List<FloatArray> by lazy {
+        val peak = raw[0].maxOf { abs(it) }
+        raw.map { t -> FloatArray(SIZE) { (t[it] / peak).toFloat() } }
+    }
+    /** The full reed tone (28 harmonics), for the low and middle notes. */
+    val table: FloatArray get() = tables[0]
+    /** The richest tone whose highest harmonic stays under 0.45 of the sample rate, for a reed moving [step] cycles a sample. */
+    fun tableFor(step: Double): FloatArray {
+        val allowed = if (step > 0) 0.45 / step else Double.MAX_VALUE
+        for (k in HARMONICS.indices) if (HARMONICS[k] <= allowed) return tables[k]
+        return tables[HARMONICS.size - 1]
+    }
+    /** The number of harmonics [tableFor] picks, for the tests. */
+    fun harmonicsFor(step: Double): Int { val allowed = if (step > 0) 0.45 / step else Double.MAX_VALUE; return HARMONICS.firstOrNull { it <= allowed } ?: 1 }
 }
 
 /**
@@ -184,7 +204,8 @@ class Mixer(private val sampleRate: Int) {
 
     /** Fills [out] with the next [n] samples, every one inside -1..1. */
     @Synchronized fun render(out: FloatArray, n: Int = out.size) {
-        val table = Wave.table
+        // v18: each reed reads the richest tone that stays clean at its pitch, chosen once a block
+        val valveTable = Array(Shruti.COUNT) { Wave.table }
         val k = key
         val detune = 2.0.pow(DETUNE_CENTS / 1200.0)
         val xf = crossfadeS
@@ -196,6 +217,7 @@ class Mixer(private val sampleRate: Int) {
         val bend = 2.0.pow(cents / 1200.0)
         val shift = 2.0.pow(octave.coerceIn(Shruti.LOWEST_OCTAVE, Shruti.HIGHEST_OCTAVE).toDouble()) * bend
         val step = DoubleArray(Shruti.COUNT) { Shruti.freq(k, it) * shift / sampleRate }
+        for (v in 0 until Shruti.COUNT) valveTable[v] = Wave.tableFor(step[v])
         val bellowsStep = BELLOWS_HZ / sampleRate
         val count = max(1, (0 until Shruti.COUNT).count { open[it] && volume[it] > 0.0 } + noteOpen.count { it })
         // Many reeds together are louder: the level follows the square root of how many are open, smoothly, so
@@ -214,8 +236,9 @@ class Mixer(private val sampleRate: Int) {
                 if (gain[v] == 0.0) continue
                 phaseA[v] = (phaseA[v] + step[v]) % 1.0
                 phaseB[v] = (phaseB[v] + step[v] * detune) % 1.0
-                val a = table[(phaseA[v] * Wave.SIZE).toInt() % Wave.SIZE]
-                val b = table[(phaseB[v] * Wave.SIZE).toInt() % Wave.SIZE]
+                val tv = valveTable[v]
+                val a = tv[(phaseA[v] * Wave.SIZE).toInt() % Wave.SIZE]
+                val b = tv[(phaseB[v] * Wave.SIZE).toInt() % Wave.SIZE]
                 sum += gain[v] * (a + b) * 0.5
             }
             // the free reeds: the same reed, fades and beating, at the note's own pitch
@@ -228,8 +251,9 @@ class Mixer(private val sampleRate: Int) {
                 val st = Shruti.noteFreq(nt) * bend / sampleRate
                 notePhaseA[nt] = (notePhaseA[nt] + st) % 1.0
                 notePhaseB[nt] = (notePhaseB[nt] + st * detune) % 1.0
-                val a = table[(notePhaseA[nt] * Wave.SIZE).toInt() % Wave.SIZE]
-                val b = table[(notePhaseB[nt] * Wave.SIZE).toInt() % Wave.SIZE]
+                val tn = Wave.tableFor(st)
+                val a = tn[(notePhaseA[nt] * Wave.SIZE).toInt() % Wave.SIZE]
+                val b = tn[(notePhaseB[nt] * Wave.SIZE).toInt() % Wave.SIZE]
                 sum += noteGain[nt] * (a + b) * 0.5
             }
             out[s] = tanh(sum * norm * air * LEVEL * 1.6).toFloat()

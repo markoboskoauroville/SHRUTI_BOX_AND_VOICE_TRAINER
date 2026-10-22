@@ -388,5 +388,17 @@
 
 1. A section on the page: what the app does with a Novation Launchkey Mini MK4, released together with the build that has it.
 
-**Status:** asked.
+> "web page update is the last thing we are doing at the end of the session. You need to ask me now, we are just developing. I just want to put it in your mind so I don't forget to tell you when it's finished. So you need to update" (Marko, 22.10.2026)
+
+2. The page is updated at the end of the session, not now: before closing, ask Marko and then publish the release, the latest APK and the Novation section together.
+
+**Status:** waiting for the end of the session (ask Marko first).
+
+## v19 — 22.10.2026: high notes clean (from Marko's octave test)
+
+> "I press the low C key. I mean, first I switch octave, and then I press the low C key, and the sound is very strange" (Marko, 22.10.2026, Launchkey at Octave +5, the low C = C7, note 108)
+
+1. A reed's tone carries only the harmonics that fit under the digital limit at its pitch: at C7 the 28 harmonics reached 117 kHz and folded back as harsh tones (aliasing). Nine tones (28 … 1 harmonics), the richest clean one chosen per reed each block.
+
+**Status:** built for testing.
 

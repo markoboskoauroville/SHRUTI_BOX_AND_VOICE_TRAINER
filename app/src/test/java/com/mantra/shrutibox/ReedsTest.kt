@@ -50,6 +50,10 @@ class ReedsTest {
         assertTrue(slow.level(0) < 0.3 && quick.level(0) > 0.99)
     }
     @Test fun aBentReedStillSounds() { val m = Mixer(rate); m.bendSemis = 2.0; m.vibrato = 1.0; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }
+    // v18: no reed ever carries a harmonic past the clean limit, from MIDI 0 to 127, even bent up two semitones
+    @Test fun noNoteAliases() = assertTrue((0..127).all { n -> val st = Shruti.noteFreq(n) * 2.0.pow(2.0 / 12) / rate; Wave.harmonicsFor(st) * st <= 0.45 || Wave.harmonicsFor(st) == 1 })
+    @Test fun lowNotesKeepTheFullReed() = assertEquals(28, Wave.harmonicsFor(Shruti.noteFreq(48) / rate))
+    @Test fun c7IsThinner() = assertTrue(Wave.harmonicsFor(Shruti.noteFreq(108) / rate) <= 5)
     @Test fun eightyEightKeys() = assertEquals(88, AutoRun.PIANO.count())
     @Test fun aFreeReedSounds() { val m = Mixer(rate); m.setNote(72, true); assertTrue(peak(m, 0.5) > 0.05); m.closeAll(); peak(m, 1.0); assertTrue(peak(m, 0.1) < 1e-6) }
     @Test fun aValveSoundsAnOctaveUp() { val m = Mixer(rate); m.octave = 1; m.setOpen(0, true); assertTrue(peak(m, 0.3) > 0.05) }

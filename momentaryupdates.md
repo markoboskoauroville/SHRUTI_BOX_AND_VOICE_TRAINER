@@ -206,3 +206,15 @@
 
 **Status:** asked.
 
+## v13 — requested 22.10.2026: the trainer's difficulty and range, and CUSTOM presets
+
+> "More updates in the settings for voice trainer. You need to put difficulties. The hardest part is 20% plus minus, then 40%, then 60%. Different difficulties for the voice trainer. And when I press auto for voice trainer, the C is starting automatically. Also inside the settings for the voice trainer, you need to put the range of training. So now we have from CC1 until 88 keys of the actual piano keys. That's the one thing. Second thing I want to have: custom. We have drones, we have ragas, we have chords, we have custom. So user can store its own presets and also rename them. So how we save the presets? When user presses keys next to the reset button, the keys are displayed. Then after the keys there will be a save icon, and then this icon saves the new preset of what's there on the screen. Let's build that." (Marko, 22.10.2026)
+
+1. VOICE TRAINER in settings: DIFFICULTY, how close the voice must be to count as the note: ±20 % (hardest), ±40 %, ±60 %.
+2. AUTO starts at once on C (Sa) by itself.
+3. VOICE TRAINER in settings: the RANGE of training, chosen within the 88 keys of a piano (A0 … C8).
+4. A CUSTOM tab beside DRONES, RAGAS, CHORDS: his own presets, renamed as he likes.
+5. Saving one: after the note buttons beside RESET, a save icon stores what sounds on the screen as a new CUSTOM preset.
+
+**Status:** asked.
+

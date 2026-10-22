@@ -164,6 +164,7 @@ class Midi(context: Context) {
                         if (first < 0) first = b
                         else {
                             val ch = status and 0x0F; val v = first or (b shl 7); first = -1
+                            Log.d(TAG, "port $port ch ${ch + 1} bend $v")
                             main.post { onBend?.invoke(ch, v) }
                         }
                     }

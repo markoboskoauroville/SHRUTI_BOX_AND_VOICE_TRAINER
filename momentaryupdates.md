@@ -244,5 +244,9 @@
 2. A product page on Cloudflare Pages, free download: the features in a nutshell, then the details, then the history of the shruti box (from France to India) and its use with recited mantras, a few mantras, and a few YouTube videos of mantras played with a shruti box.
 3. Screenshots of the app on the page.
 
+> "Give some also lifestyle images and connection diagrams for a MIDI keyboard. Exactly the same setup I have: open the Chrome browser and use Nano Banana to generate images for free." (Marko, 22.10.2026)
+
+4. Lifestyle images and a connection diagram of his setup (Launchkey Mini MK4 25 into the Pixel 7 by USB), made with Nano Banana (Gemini) in Chrome.
+
 **Status:** asked.
 

@@ -353,3 +353,13 @@
 
 **Status:** live 22.10.2026, both steps tested in Chrome on a local copy (the bowl with its line; after the click the bowl fades and the panel shows the Give with Revolut button, the QR @mbosko0612 and "back to the bowl"). On the way the download section was cut by a replacement and put back above the bowl (checked live); the line under the bowl was black on black until the button inherited the page colour.
 
+## v16 — requested 22.10.2026: the Launchkey's octaves and the app's octaves as one
+
+> "please go back to my Pixel phone through ADB and use Novation Control. There is a switch on Novation Octave Plus and Minus. You need to find a way to change this switch through this application, and then test all octaves so they are compatible with the application. Right now not everything is displayed, some goes out of the range of this application, so the application doesn't snap to that range. Please check all the ranges from the bottom to the top, and they will be displayed in the same language as this keyboard is displaying it. For example, the lowest octave is 4 C2 C0. You can see matrix display now with camera. Please make this app compatible with this controller, so when I switch octaves with my left and right arrows at the bottom of the screen, it is also triggering the same mechanism inside my MIDI controller. It's shifting the MIDI controller as well to different octaves" (Marko, 22.10.2026)
+
+1. Every octave the Launchkey's Octave − / + reaches is inside the app's range: the box snaps to it, from the lowest to the highest.
+2. Note names in the app as the keyboard's own display writes them.
+3. ◀ ▶ in the app also shift the Launchkey's octave (the controller follows the app), found through the controller's own control interface.
+
+**Status:** asked.
+

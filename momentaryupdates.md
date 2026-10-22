@@ -248,5 +248,15 @@
 
 4. Lifestyle images and a connection diagram of his setup (Launchkey Mini MK4 25 into the Pixel 7 by USB), made with Nano Banana (Gemini) in Chrome.
 
+> "Know very well how to do this to Gemini in my profile of ... auroville.community." (Marko, 22.10.2026)
+
+> "When the page is done building, open it automatically with the Cloud extension in Chrome." (Marko, 22.10.2026)
+
+5. The page opens in Chrome through Claude in Chrome as soon as it is live.
+
+> "When you finish everything, write in the code box a message to Svemir in Croatian speaking language. Say thank you for inspiration. I created ShrutiBox app. If you ever need a shruti, you can download it from here. You can also just point to the website. That's it. I actually have my WhatsApp right in auroville Community in my quick bookmarks bar, and you can just trigger it from there and find Svemir. Then just not sending message, just pasted there." (Marko, 22.10.2026)
+
+6. At the end: a message to Svemir in spoken Croatian (thanks for the inspiration, the app, the page's link), shown in a code box, and pasted into his WhatsApp chat (WhatsApp Web from the bookmarks bar, Chrome profile auroville.community) without sending it.
+
 **Status:** asked.
 

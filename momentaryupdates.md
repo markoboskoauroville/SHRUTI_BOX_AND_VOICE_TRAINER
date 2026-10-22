@@ -363,3 +363,15 @@
 
 **Status:** asked.
 
+## v17 — requested 22.10.2026: the whole Launchkey drives the app, as it drives Ableton Live
+
+> "are there some other open-source programs which control Novation keyboards? Please search through GitHub and find the codes source code / we can even write to Novation to give us data we need for developing our app to control Novation keyboard Also, Novation keyboard is controlled via Ableton Live and it can control Ableton Live. Are there some protocols we can use from Ableton Live? Ableton Live protocols are very well documented." (Marko, 22.10.2026)
+
+> "ableton Live is controlled also with all these knobs and pads and everything. Let's see what we can use to control our own application with this Novation keyboard using the tricks for Ableton Live ableton Live our application on the phone" (Marko, 22.10.2026)
+
+1. Learn from open-source code that drives Novation keyboards, above all Ableton Live's own Launchkey MK4 MIDI Remote Script.
+2. The app takes the Launchkey in DAW mode, as Ableton does: knobs, pads, arrows, Play and the other buttons control the app; the app lights the pads and writes the display.
+3. A letter to Novation asking for the octave message (drafted for Marko).
+
+**Status:** researching.
+

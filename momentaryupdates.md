@@ -478,3 +478,4 @@
 1. Every public app page in the order of MANTRA_MANIFEST modules/app-page-order.md: the banner (the app at work, name and one line on it), a short introduction with the download button and the version line, the lifestyle picture, the technical part, the donation bowl.
 
 **Status:** done 1.11.2026 (site/public/index.html): banner = img/lifestyle.jpg (the singer with the phone and the MIDI keyboard) with the icon and the name on it, the introduction with Download the latest version (no version number, version-visible.md), the technical part, the bowl. A second picture is still needed for the lifestyle place (a placeholder comment marks it), to be made in Gemini.
+**Status, 1.11.2026 (later):** the lifestyle picture is in (made in Gemini, lifestyle2.jpg); the page order is complete.

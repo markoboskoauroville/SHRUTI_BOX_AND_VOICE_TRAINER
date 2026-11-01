@@ -9,3 +9,8 @@ keystore.properties
 .idea/
 *.iml
 .DS_Store
+
+# the page APK is put there by build-apk.yml at release, never committed (download-always-latest.md)
+site/public/download/*.apk
+released/
+.wrangler/

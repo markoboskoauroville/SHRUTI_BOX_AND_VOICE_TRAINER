@@ -170,3 +170,23 @@ jobs:
             [ -z "$tag" ] && continue
             gh release delete "$tag" --yes --cleanup-tag || true
           done
+
+      # The page gets exactly what was released, by itself (MANTRA_MANIFEST download-always-latest.md, 1.11.2026): the
+      # release's own APK at download/shruti-box-and-voice-trainer-latest.apk, then wrangler. Only on main, and only when
+      # this run published (or by hand, Run workflow, which puts the existing release of appVersion on the page).
+      - name: Put the release on the page
+        if: github.ref == 'refs/heads/main' && (steps.publish.outputs.published == 'true' || github.event_name == 'workflow_dispatch')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ steps.provenance.outputs.version }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::notice::Cloudflare secrets not set: the page was NOT updated. Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID to this repository."
+            exit 0
+          fi
+          mkdir -p released && gh release download "v${V}" --pattern "${V}-shrutibox-v${V}.apk" --dir released --clobber
+          bash scripts/publish_page.sh "released/${V}-shrutibox-v${V}.apk"
+          curl -sI https://mantrashrutiandvoicetrainer.pages.dev/download/shruti-box-and-voice-trainer-latest.apk | head -1 || true

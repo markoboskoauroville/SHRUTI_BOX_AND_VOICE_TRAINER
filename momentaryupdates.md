@@ -484,3 +484,11 @@
 > "yes, fix download links so every website gets each new version by itself" (Marko, 1.11.2026)
 
 **Status:** built 1.11.2026, not yet live: build-apk.yml puts each new release's APK at download/shruti-box-and-voice-trainer-latest.apk and deploys the page (scripts/publish_page.sh). Waiting for the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; until then the step skips with a notice and the page keeps the v27 file (identical to the release).
+
+## 1.11.2026: My studio setup, a link above the bowl
+
+> "Just above the Tibetan bowl for donation, you can just make one link, and then it will open the page with all lifestyle images and images of these products which I'm using in my development studio ... For this link, you can say "My studio setup." ... It is opening a new page, which is going to call studio setup mantra.pages.dev" (Marko, 1.11.2026)
+
+1. One centred link "My studio setup" right above the donation bowl, opening https://studiosetupmantra.pages.dev in a new tab, with the line "The gear these apps are made with · affiliate links on Amazon.de".
+
+**Status:** committed 1.11.2026, NOT pushed or deployed: waiting until Marko registers studiosetupmantra.pages.dev in Amazon PartnerNet and the studio page is live.

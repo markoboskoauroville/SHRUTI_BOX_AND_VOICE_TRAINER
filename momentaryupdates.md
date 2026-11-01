@@ -483,4 +483,4 @@
 ## 1.11.2026: download links that follow every new version by themselves
 > "yes, fix download links so every website gets each new version by itself" (Marko, 1.11.2026)
 
-**Status:** in progress (MANTRA_MANIFEST modules/download-always-latest.md): the button keeps its fixed address, download/shruti-box-and-voice-trainer-latest.apk, now filled and deployed by the build workflow in the run that releases the version, no copy by hand.
+**Status:** built 1.11.2026, not yet live: build-apk.yml puts each new release's APK at download/shruti-box-and-voice-trainer-latest.apk and deploys the page (scripts/publish_page.sh). Waiting for the repository secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID; until then the step skips with a notice and the page keeps the v27 file (identical to the release).

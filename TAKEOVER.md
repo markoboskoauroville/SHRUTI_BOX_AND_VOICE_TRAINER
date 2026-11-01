@@ -29,7 +29,7 @@ now and give it to me to download."*
 
 ## The page
 
-https://mantrashrutiandvoicetrainer.pages.dev (`site/`, Cloudflare Pages, deploy with wrangler as in site/README.md): the
+https://mantrashrutiandvoicetrainer.pages.dev (`site/`, Cloudflare Pages, deployed by build-apk.yml, see below): the
 newest release behind "Download the latest version", the Novation section, all equipment in one frame (Amazon tag
 markomantresh-21), the Salamander credit, the Tibetan bowl, the favicon = the app icon. Linked from the biography's Kod tab.
 
@@ -45,3 +45,17 @@ the mediaPlayback type); just intonation instead of equal temperament (a shruti 
   octave; `crossfadeS` slows every swell and fade (the sequencer's XFADE); `Shruti.valveInWindow`, `octaveFor`, `noteFreq`.
 - `Auto.kt`: `AutoRun.walk` (MIDI notes through the trainer's range), `DIFFICULTIES`, `PIANO`; `SeqRun` (one beat a step).
 - CUSTOM presets are JSON in the preferences (`custom`: name and valves relative to Sa).
+
+## The download follows every release by itself (1.11.2026)
+
+- The button's address stays `download/shruti-box-and-voice-trainer-latest.apk` (no version, never edited; the page names
+  no version, version-visible.md). The APK is no longer in git.
+- build-apk.yml, step *Put the release on the page*: on main, when *Publish* made a new release (or on Run workflow, which
+  re-puts the existing release of appVersion), it downloads that release's APK, `scripts/publish_page.sh` copies it to the
+  fixed address, writes its size into the `app-size` spans and deploys site/public with wrangler.
+- **Blocked on the secrets:** the repository has no CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID (only the keystore
+  secrets). Until they are added (MANTRA_MANIFEST apis/cloudflare.md §6) the step prints a notice and skips; the live page
+  keeps the hand-deployed v27 file (checked 1.11.2026: identical to the release, 3437229 bytes). Proven path so far:
+  run 41277771678 (workflow_dispatch, green, skip notice). After the secrets: Actions → Run workflow on main, then check
+  the live file and the size "3 MB" on the button.
+- A new version: raise appVersion, push to main. Never deploy site/public by hand (git holds no APK).

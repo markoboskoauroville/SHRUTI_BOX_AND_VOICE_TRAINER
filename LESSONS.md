@@ -15,3 +15,8 @@
 - The Oct −/+ buttons send nothing over MIDI (Ableton reads them only from the notes after); follow the octave from the incoming note numbers.
 - A run loop on withFrameNanos stops when the screen is off; the sequencer needs its own clock (delay loop) to play in the background.
 - Naive wavetables alias above ~C6; one table per octave band (harmonics ≤ 0.45 fs) fixed it.
+
+## 1.11.2026, download links by themselves
+- The publish step skips when the tag exists, so the page step must not hang on "published" alone: a Run workflow on
+  main re-puts the existing release, which lets the page be fixed or checked without a new version.
+- The button said "APK · 1 MB" for a 3.4 MB file: a size typed by hand goes stale like a version; the run writes it now.

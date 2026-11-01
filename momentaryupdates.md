@@ -479,3 +479,8 @@
 
 **Status:** done 1.11.2026 (site/public/index.html): banner = img/lifestyle.jpg (the singer with the phone and the MIDI keyboard) with the icon and the name on it, the introduction with Download the latest version (no version number, version-visible.md), the technical part, the bowl. A second picture is still needed for the lifestyle place (a placeholder comment marks it), to be made in Gemini.
 **Status, 1.11.2026 (later):** the lifestyle picture is in (made in Gemini, lifestyle2.jpg); the page order is complete.
+
+## 1.11.2026: download links that follow every new version by themselves
+> "yes, fix download links so every website gets each new version by itself" (Marko, 1.11.2026)
+
+**Status:** in progress (MANTRA_MANIFEST modules/download-always-latest.md): the button keeps its fixed address, download/shruti-box-and-voice-trainer-latest.apk, now filled and deployed by the build workflow in the run that releases the version, no copy by hand.

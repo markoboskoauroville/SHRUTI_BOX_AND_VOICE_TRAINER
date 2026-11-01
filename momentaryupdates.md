@@ -470,3 +470,11 @@
 1. mantrashrutiandvoicetrainer.pages.dev gets a favicon made from the app's launcher icon; the DJ app page the same with DJ Mantra's icon; every page from now on.
 
 **Status:** done 22.10.2026: favicon.svg from the launcher icon (MANTRA_MANIFEST kits/favicon/vector2svg.py), apple-touch-icon.png, favicon.ico; live, all three 200. The rule is in design-language.md §16.
+
+## 1.11.2026: the page order (banner, introduction, lifestyle, technical, donation)
+
+> "the page is perfect. Let's do it all pages" (Marko, 1.11.2026, about mantramiditools.pages.dev)
+
+1. Every public app page in the order of MANTRA_MANIFEST modules/app-page-order.md: the banner (the app at work, name and one line on it), a short introduction with the download button and the version line, the lifestyle picture, the technical part, the donation bowl.
+
+**Status:** done 1.11.2026 (site/public/index.html): banner = img/lifestyle.jpg (the singer with the phone and the MIDI keyboard) with the icon and the name on it, the introduction with Download the latest version (no version number, version-visible.md), the technical part, the bowl. A second picture is still needed for the lifestyle place (a placeholder comment marks it), to be made in Gemini.

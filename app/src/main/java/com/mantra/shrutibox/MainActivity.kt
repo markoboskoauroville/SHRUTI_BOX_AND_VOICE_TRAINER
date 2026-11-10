@@ -925,6 +925,11 @@ private fun SettingsScreen(s: Settings, pal: Palette, midiNames: List<String>, k
             style = MONO.copy(fontSize = 13.sp, letterSpacing = 0.sp, color = pal.light),
             modifier = Modifier.clickable(onClick = onVersion).padding(vertical = 10.dp)
         )
+        BasicText(
+            "© 2026 Mantra Productions",
+            style = MONO.copy(fontSize = 12.sp, letterSpacing = 0.sp, color = pal.light.copy(alpha = 0.5f), textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp)
+        )
     }
 }
 
